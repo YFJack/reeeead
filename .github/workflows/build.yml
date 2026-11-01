@@ -1,0 +1,23 @@
+name: macOS build and tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test -j 2
+      - name: Build native app
+        run: ./scripts/build.sh release
+      - name: Verify signature and resources
+        run: |
+          codesign --verify --deep --strict dist/Luma.app
+          test -f dist/Luma.app/Contents/Resources/Luma_Luma.bundle/reading-garden.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Luma-macOS-unsigned-for-distribution
+          path: dist/Luma.app

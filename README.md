@@ -1,0 +1,114 @@
+# 一行 · Luma
+
+**一次一行，也在向前。**
+
+一个轻量、原生、开源的 macOS 阅读辅助工具。选中文字，让它读给你听；用两次点击框出阅读带，让视线更容易停留。
+
+![Luma 原生应用首页](docs/screenshot-home.png)
+
+## 能做什么
+
+- **选区朗读**：在其他应用选中文字，按 `⌃⌥R` 开始朗读，再按一次停止。
+- **自定义全局快捷键**：两个功能可以分别设置，检测系统注册冲突与重复设置。
+- **系统语音**：按文本选择中文或英文，也可以指定本机已安装的声音。支持语速设置、暂停、继续、停止。
+- **外部语音 API**：支持 OpenAI 兼容的语音合成协议，可配置完整地址、模型、音色与语速。API Key 保存在 macOS 钥匙串，按完整接口地址隔离。
+- **屏幕阅读标尺**：按 `⌃⌥L`，横线跟随鼠标；第一次点击固定上边界，向下移动，第二次点击固定下边界。区域之外变暗，中间保持原亮度。
+- **固定后照常操作**：阅读带停留在屏幕原位，鼠标点击和滚动穿透到原应用。再次按快捷键或 `Esc` 退出。
+- **克制的像素风**：暖纸色、像素图标、生成式像素插画；正文使用清晰的系统字体。
+
+## 快速开始
+
+需要 **macOS 14 或更新版本**。源码构建需要 **Xcode 15 / Swift 5.9 或更新版本**。无第三方包依赖。
+
+```sh
+git clone https://github.com/YFJack/luma-reader.git
+cd luma-reader
+./scripts/build.sh
+open dist/Luma.app
+```
+
+将 `dist/Luma.app` 拖到「应用程序」后再开启辅助功能权限，可以保持授权路径稳定。关闭窗口后应用继续驻留菜单栏；从菜单栏选择「退出 Luma」完全退出。
+
+### 第一次使用
+
+1. 在「阅读空间」试听一段文字，不需要辅助功能权限。
+2. 打开「快捷键与权限」→「打开系统设置」。在 macOS 的辅助功能权限列表中开启 **Luma**。
+3. 回到 Luma 点击「重新检查」。切到文本编辑器、浏览器或文档应用，选中文字后按 `⌃⌥R`。
+4. 按 `⌃⌥L` 开始设置阅读带。定位的两次点击不会传给底层应用；第二次松开鼠标后恢复普通点击与滚动。
+
+标尺只覆盖**启动时鼠标所在的显示器**。下边界不能越过上边界，最小高度为 8 点。屏幕配置改变或电脑休眠时自动收起。
+
+### 外部语音服务
+
+「声音与语速」→「外部语音 API」。填写**完整的语音接口地址**，并保存此地址对应的 Key。
+
+默认地址是 `https://api.openai.com/v1/audio/speech`，默认模型 `tts-1`、音色 `alloy`。这些只是可编辑的兼容配置，不包含服务账户或免费额度。其他厂商必须接受以下请求格式：
+
+```json
+{
+  "model": "your-model",
+  "voice": "your-voice",
+  "input": "你选中的文字",
+  "speed": 1.0,
+  "response_format": "mp3"
+}
+```
+
+请求为 `POST`，密钥通过 `Authorization: Bearer …` 发送。服务须直接返回音频二进制，不能只返回音频 URL 或 JSON。独立协议的厂商需要额外适配，**不是所有 TTS API 都自动兼容**。
+
+- 远程地址必须使用 HTTPS；本机 `localhost` / `127.0.0.1` 可以使用 HTTP。
+- 空密钥允许调用本机免鉴权服务。
+- 每次最多 4,000 字，单次音频最多 24 MB，不保存朗读历史。
+- 请求重定向会被拒绝，避免凭据转发至其他地址。
+- 停止朗读会取消未完成请求；已经到达服务端的请求仍可能产生服务费用。
+- 当前版本等待本段音频下载完成再播放，尚无流式播放。
+- 语速对下一次朗读生效；系统语音和不同服务的速度刻度并非完全相同。
+
+## 隐私与权限
+
+- 无遥测、无广告、无 Luma 账号、无项目自建后端。
+- 系统语音由 macOS 本机语音引擎处理。Luma 不将系统朗读文本发送到外部 API。
+- 选择外部 API 后，**只有主动朗读的文字**会发送至所配置的服务；该服务自己的数据政策仍适用。
+- API Key 仅保存在钥匙串；语音设置和快捷键保存在本机 UserDefaults。试读区文字只保留在当前进程内。
+- 标尺通过透明窗口绘制，不截图、不录屏，不需要屏幕录制权限。
+- 辅助功能权限用于读取选区、模拟复制，以及标尺工作期间监听并拦截 Esc。Esc 监听在退出标尺后释放。
+- 复制兼容模式先尝试辅助功能接口，只有读取失败才模拟 `⌘C`。复制成功后尽量恢复剪贴板；图片、文件或过大的剪贴板会跳过兼容复制。剪贴板管理器、延迟复制与并发写入可能影响恢复，敏感工作流可关闭兼容模式。
+
+更多边界见 [验证记录](docs/VERIFICATION.md) 与 [架构说明](docs/ARCHITECTURE.md)。
+
+## 开发与验证
+
+```sh
+swift test -j 1                 # 核心测试；本机 API 集成测试默认跳过
+./scripts/build.sh debug        # 调试应用包
+./scripts/build.sh release      # 优化构建，默认单任务编译
+```
+
+本机 API 集成测试（两个终端）：
+
+```sh
+python3 scripts/mock-tts.py
+LUMA_LOCAL_API_TESTS=1 swift test -j 1
+```
+
+模拟服务只绑定 `127.0.0.1:8642`，返回低音量测试音，验证 HTTP、音频解码、暂停恢复、取消、401 与重定向处理；**不能证明真实厂商的语音质量或端到端兼容性**。
+
+### 签名与发行
+
+构建脚本默认使用本机 ad-hoc 签名。自行编译运行不等于完成 Apple Developer ID 签名或公证。重建后，辅助功能权限或钥匙串访问可能需要重新确认。
+
+正式对外分发时可设置 `LUMA_SIGN_IDENTITY` 使用自己的签名身份，并按 Apple 的流程启用 hardened runtime、签名、公证和 staple。当前仓库不包含签名证书、开发者账号或公证凭据。
+
+## 当前范围
+
+macOS 优先；尚不支持 Windows、OCR、图片/扫描件朗读、自动逐字高亮或非兼容 TTS 协议。不同应用对辅助功能选区的支持不同，不能保证“任何软件都能读”。使用 [问题模板](.github/ISSUE_TEMPLATE/bug_report.md) 反馈应用名、macOS 版本、复现步骤即可，请勿附上 API Key 或敏感文档。
+
+## Contributing / English
+
+Luma is a native macOS reading companion built with Swift, AppKit and SwiftUI. It reads selected text using system speech or a configurable OpenAI-compatible TTS endpoint, and provides a two-click, click-through screen reading band. Requires macOS 14+. No third-party runtime dependencies.
+
+Build with `./scripts/build.sh`; run `swift test -j 1`. Contributions that improve selection compatibility, accessibility and provider adapters are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE). The bundled landscape is AI-generated; its generation prompt and provenance are recorded in [docs/ASSETS.md](docs/ASSETS.md). UI icons and app icon are drawn deterministically from original pixel patterns. No third-party fonts or stock illustrations are bundled.

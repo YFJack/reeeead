@@ -1,0 +1,11 @@
+.build/
+dist/
+.DS_Store
+*.xcuserstate
+.env
+.env.*
+!.env.example
+*.log
+local/
+__pycache__/
+*.pyc
