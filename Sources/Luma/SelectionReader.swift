@@ -66,7 +66,10 @@ enum SelectionReader {
         up?.postToPid(pid)
         // Wait for a fresh copy. Never read the pre-existing clipboard as a selection.
         for _ in 0..<14 {
-            try? await Task.sleep(nanoseconds: 50_000_000)
+            // Clipboard cleanup must finish even when playback is canceled mid-copy.
+            await withCheckedContinuation { continuation in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { continuation.resume() }
+            }
             if board.changeCount != originalChange {
                 let copiedChange = board.changeCount
                 let text = board.string(forType: .string)
