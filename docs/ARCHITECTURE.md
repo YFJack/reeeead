@@ -7,6 +7,7 @@ Reeeead is a Swift Package executable wrapped in a normal `.app` by `scripts/bui
 | `AppModel` | Preferences, page state and shortcut changes |
 | `HotKeyCenter` | Carbon keyboard hotkeys plus a narrowly filtered Quartz side-button tap; restore bindings on sheet dismissal |
 | `MouseShortcutRouter` | Paired down/up consumption, exact modifier matching and one action on release |
+| `ClipboardSnapshot` | Preserve all clipboard items/formats; 1 MB in-memory budget, private temporary storage for larger data, 256 MB total cap, change-count guarded restore and scoped cleanup |
 | `SelectionReader` | Frontmost app's accessibility selection; UTF-16 range fallback; optional bounded clipboard copy |
 | `SpeechEngine` | System synthesis, external audio, cancellation generations, pause/resume and errors |
 | `KeyStore` | Keychain generic-password item per exact trimmed endpoint |
@@ -54,3 +55,9 @@ The build script accepts `REEEEAD_SIGN_IDENTITY` (legacy `LUMA_SIGN_IDENTITY` al
 ## Naming compatibility
 
 The product, executable and Swift package are named Reeeead as of 0.2. The existing bundle identifier `app.luma.reader`, preference key and Keychain service are retained so changing the visible name does not discard user settings or stored credentials.
+
+### Screenshot clipboard regression (0.3.2)
+
+The copy fallback no longer rejects PNG/TIFF/file URL types or the former 8 MB limit. It snapshots every representation before requesting copy, keeps up to 1 MB resident, and spills larger representations to a unique 0700 directory with 0600 files. No image decoding or recompression occurs. Snapshots must complete without a clipboard change; failure leaves the original board untouched. Restore checks the expected change count both before loading representations and immediately before writing. Snapshot files are removed on normal completion, cancellation and setup failure. A process crash can leave OS-temporary files until system cleanup.
+
+The fallback still waits for fresh copy data, reads only text, and performs cleanup before propagating task cancellation. Clipboard-manager races, source-app changes and delayed copy remain explicit limitations; this does not add OCR or read the screenshot itself.

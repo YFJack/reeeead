@@ -41,22 +41,12 @@ enum SelectionReader {
         try Task.checkCancellation()
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { throw LumaError.message("前台应用已切换，请重新选择文字。") }
         let board = NSPasteboard.general
-        var bytes = 0
-        var backup: [[NSPasteboard.PasteboardType: Data]] = []
-        for item in board.pasteboardItems ?? [] {
-            if item.types.contains(.tiff) || item.types.contains(.png) || item.types.contains(.fileURL) {
-                throw LumaError.message("剪贴板中有图片或文件，已保留原内容。请手动粘贴文字到试读区，或换用支持选区读取的应用。")
-            }
-            var copy: [NSPasteboard.PasteboardType: Data] = [:]
-            for type in item.types {
-                guard let data = item.data(forType: type) else { continue }
-                bytes += data.count
-                guard bytes <= 8 * 1024 * 1024 else { throw LumaError.message("剪贴板内容较大，已保留原内容。请换用支持选区读取的应用，或手动粘贴到试读区。") }
-                copy[type] = data
-            }
-            backup.append(copy)
+        let backup = try ClipboardSnapshot(board)
+        let originalChange = backup.changeCount
+        try Task.checkCancellation()
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else {
+            throw LumaError.message("前台应用已切换，请重新选择文字。")
         }
-        let originalChange = board.changeCount
         let source = CGEventSource(stateID: .combinedSessionState)
         let down = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: true)
         let up = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: false)
@@ -75,15 +65,7 @@ enum SelectionReader {
                 let text = board.string(forType: .string)
                 let sameApp = NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
                 // Restore only if no subsequent writer has touched the clipboard.
-                if sameApp && board.changeCount == copiedChange {
-                    board.clearContents()
-                    let items = backup.map { contents -> NSPasteboardItem in
-                        let item = NSPasteboardItem()
-                        for (type, data) in contents { item.setData(data, forType: type) }
-                        return item
-                    }
-                    if !items.isEmpty { board.writeObjects(items) }
-                }
+                if sameApp { try backup.restore(to: board, ifUnchangedSince: copiedChange) }
                 try Task.checkCancellation()
                 guard sameApp else { throw LumaError.message("前台应用已切换，已取消本次朗读。") }
                 if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return text }

@@ -1,4 +1,14 @@
-# Verification — 0.3.1
+# Verification — 0.3.2
+
+## Screenshot clipboard fix — 2026-11-02
+
+- Removed the type-based screenshot/file rejection in the real selection-copy fallback and replaced its 8 MB in-memory-only snapshot with bounded private temporary storage.
+- 25 tests passed, 4 opt-in HTTP tests skipped (29 total). The unchanged HTTP/audio paths passed all four integration tests in 0.3.1.
+- Six new tests use isolated native NSPasteboard instances: a 10 MB screenshot representation plus PNG/metadata restored byte-for-byte; multiple file URLs; protection of a later user copy; empty clipboard; private temporary-file permissions/cleanup; and budget failure with the original clipboard untouched.
+- Release 0.3.2 built with one compiler job and installed on both Macs; per-file/signature checks passed and executable SHA-256 matched (`86570cb24331b28e694612a9b695afbab39540ccac11c6179dca5c7e3bf3cfe7`). The installed Mac mini app launched successfully.
+- Physical shortcut selection capture after a real screenshot still needs user acceptance. These tests establish preservation using the native pasteboard, not physical input dispatch.
+
+## Previous 0.3.1 evidence
 
 Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, Swift 6.3.3. Second install: Apple Silicon MacBook, macOS 26.2. Minimum supported target is macOS 14; older supported OS versions have not been manually tested.
 
