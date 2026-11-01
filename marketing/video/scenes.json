@@ -1,0 +1,8 @@
+[
+ {"id":"hello","voice":"眼睛说，读完了。脑子说，你谁？","en":"Eyes: finished. Brain: sorry, who are you?","minDuration":4.2},
+ {"id":"again","voice":"同一行，读了三遍。第四遍？先别。","en":"Same line. Third read. A fourth? Let's try something else.","minDuration":4.2},
+ {"id":"listen","voice":"选中文字，按下快捷键。让耳朵接个班。","en":"Select some text. Press your shortcut. Let your ears take a shift.","minDuration":5.3},
+ {"id":"ruler","voice":"点两下，留出一条阅读带。其他地方，先下班。","en":"Two clicks. One reading band. Everything else can clock out.","minDuration":6.2},
+ {"id":"app","voice":"小小一个 Mac 应用。系统语音，或者你自己的语音 API。","en":"A little Mac app. System voices, or your own speech API.","minDuration":6.2},
+ {"id":"star","voice":"代码已经开源。觉得有用，来 GitHub 点颗星。给这位阅读搭子，加个鸡腿。","en":"Open source. If it helps, star it on GitHub. A little snack for your reading buddy.","minDuration":7.4}
+]

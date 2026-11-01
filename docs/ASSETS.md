@@ -39,3 +39,11 @@ The older pixel landscape is absent from the current app; its provenance remains
 - File: `Sources/Reeeead/Resources/Fonts/SpaceGrotesk-Medium.otf`.
 - Full copyright and SIL Open Font License: `Sources/Reeeead/Resources/Fonts/SpaceGrotesk-OFL.txt`, also bundled in the app.
 - Registered only inside the app process, without system font installation. Live text preserves crisp rendering at every display scale.
+
+## Public launch, 2026-11-02
+
+- `marketing/assets/reading-again.png`: editorial pixel reader illustration generated with the built-in imagegen tool. Full generation prompt: `marketing/assets/reading-again.prompt.txt`. This is an illustration, not an app screenshot.
+- `marketing/video/`: original low-memory Pillow/FFmpeg renderer, script and voice generator. Chinese narration uses MiniMax `speech-2.8-hd`, `presenter_male`, `emotion: calm`, speed 1.15. It is a promotional production setting, not a shipped app preset. Only the public script is sent to the voice provider.
+- Product footage combines original feature animations explicitly labeled illustrative with the existing, genuine native app screenshot. No external desktop, private text, account info or API key is included.
+- `website/`: original bilingual marketing site. Typeless is a direction reference for clear product explanation and restrained layout; no Typeless assets, claims or copy are reused.
+- Generated launch illustration and original film/layout assets are offered under the repository's MIT license to the extent rights are held. Font files remain under their bundled OFL; system font files are not redistributed. No guarantee of exclusivity is made for generated artwork.
