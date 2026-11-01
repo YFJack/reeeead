@@ -15,6 +15,7 @@ Environment: Apple Silicon Mac mini, macOS 26.5.2, Swift 6.3.3. Validation date:
 - Native UI: shortcut recording rejects a duplicate of the other action and saves the chosen shortcut.
 - Native UI: when Accessibility is absent, the ruler refuses to open and explains the required permission instead of trapping the user in an overlay.
 - Installed application launches independently from `~/Applications/Luma.app` after all local Swift build artifacts are removed; packaged image resources still render correctly.
+- [GitHub Actions run 41320288673](https://github.com/YFJack/luma-reader/actions/runs/41320288673) passed on macOS 15: core tests, release build, signature/resource verification and artifact upload. The three local-fixture integration tests are intentionally skipped in CI; their passing results above are from the local fixture run.
 
 ## Pending / not claimed
 
@@ -23,7 +24,6 @@ Environment: Apple Silicon Mac mini, macOS 26.5.2, Swift 6.3.3. Validation date:
 - No real external provider credentials were used. The local fixture validates protocol handling, not a provider's live authentication, voice quality, latency, quotas or billing.
 - Keychain read/write error handling is implemented. Actual user-secret storage has not been exercised with a real credential.
 - Developer ID signing, Apple notarization and a broadly distributed binary release have not been completed.
-- GitHub Actions initially canceled before running any step because of GitHub's scheduled macOS 14 runner brownout. The workflow has been moved to macOS 15; its outcome must be checked independently of local test results.
 - This is an initial product build, not a clinical evaluation of reading outcomes.
 
 ## Manual acceptance checklist
