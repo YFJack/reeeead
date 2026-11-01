@@ -133,7 +133,8 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
                     }
                     let size = (try FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber)?.int64Value ?? 0
                     guard size > 0, size <= AudioDownloadPolicy.maximumBytes else { throw LumaError.message("返回的音频为空或超过 24 MB，请缩短文字后重试。") }
-                    let audio = try AVAudioPlayer(data: Data(contentsOf: file, options: .mappedIfSafe))
+                    let bytes = try SpeechResponse.audio(Data(contentsOf: file, options: .mappedIfSafe), provider: preferences.provider)
+                    let audio = try AVAudioPlayer(data: bytes)
                     audio.delegate = self
                     audio.prepareToPlay()
                     self.player = audio

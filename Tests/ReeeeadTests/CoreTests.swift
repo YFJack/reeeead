@@ -4,12 +4,12 @@ import AppKit
 
 final class CoreTests: XCTestCase {
     func testBundledBrandFontLoadsWithoutSystemInstallation() throws {
-        let url = try XCTUnwrap(Brand.resources.url(forResource: "OpenDyslexic-Regular", withExtension: "otf", subdirectory: "Fonts"))
+        let url = try XCTUnwrap(Brand.resources.url(forResource: "SpaceGrotesk-Medium", withExtension: "otf", subdirectory: "Fonts"))
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
-        XCTAssertNotNil(Brand.resources.url(forResource: "OFL", withExtension: "txt", subdirectory: "Fonts"))
+        XCTAssertNotNil(Brand.resources.url(forResource: "SpaceGrotesk-OFL", withExtension: "txt", subdirectory: "Fonts"))
         Brand.registerFont()
         let font = try XCTUnwrap(NSFont(name: Brand.fontName, size: 24))
-        XCTAssertEqual(font.familyName, "OpenDyslexic")
+        XCTAssertEqual(font.familyName, "Space Grotesk")
     }
     func testRulerTwoClicksAndLockedPosition() {
         var r = RulerGeometry(height: 900)

@@ -73,6 +73,12 @@ struct MouseShortcutRouter {
     }
 }
 
+struct VoiceProfile: Codable {
+    var endpoint: String
+    var model: String
+    var voice: String
+}
+
 struct Preferences: Codable {
     var provider = "system"
     var speed = 1.0
@@ -86,6 +92,20 @@ struct Preferences: Codable {
     var lineWidth = 2.0
     var lineColor = "sage"
     var copyFallback = true
+    var voiceProfiles: [String: VoiceProfile]? = nil
+    mutating func selectProvider(_ next: String) {
+        guard next != provider else { return }
+        var profiles = voiceProfiles ?? [:]
+        if provider != "system" { profiles[provider] = VoiceProfile(endpoint: endpoint, model: model, voice: voice) }
+        provider = next
+        if next != "system" {
+            let profile = profiles[next] ?? (next == "minimax"
+                ? VoiceProfile(endpoint: "https://api.minimax.cn/v1/t2a_v2", model: "speech-2.8-hd", voice: "male-qn-qingse")
+                : VoiceProfile(endpoint: "https://api.openai.com/v1/audio/speech", model: "tts-1", voice: "alloy"))
+            endpoint = profile.endpoint; model = profile.model; voice = profile.voice
+        }
+        voiceProfiles = profiles
+    }
     static func load(from defaults: UserDefaults = .standard) -> Preferences {
         guard let data = defaults.data(forKey: "preferences.v1"),
               var value = try? JSONDecoder().decode(Preferences.self, from: data) else { return Preferences() }
@@ -153,7 +173,57 @@ enum SpeechRequest {
         request.timeoutInterval = 45
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if !key.isEmpty { request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization") }
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["model": preferences.model, "voice": preferences.voice, "input": content, "speed": min(2, max(0.5, preferences.speed)), "response_format": "mp3"])
+        let body: [String: Any]
+        if preferences.provider == "minimax" {
+            body = ["model": preferences.model, "text": content, "stream": false, "output_format": "hex", "language_boost": "auto",
+                    "voice_setting": ["voice_id": preferences.voice, "speed": min(2, max(0.5, preferences.speed)), "vol": 1, "pitch": 0],
+                    "audio_setting": ["sample_rate": 32000, "bitrate": 128000, "format": "mp3", "channel": 1]]
+        } else {
+            body = ["model": preferences.model, "voice": preferences.voice, "input": content, "speed": min(2, max(0.5, preferences.speed)), "response_format": "mp3"]
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
+    }
+}
+
+enum SpeechResponse {
+    static func audio(_ data: Data, provider: String) throws -> Data {
+        guard provider == "minimax" else { return data }
+        struct Payload: Decodable {
+            struct Status: Decodable { let status_code: Int }
+            struct Audio: Decodable { let audio: String?; let status: Int? }
+            let base_resp: Status
+            let data: Audio?
+        }
+        guard let response = try? JSONDecoder().decode(Payload.self, from: data) else { throw LumaError.message("MiniMax 返回了无法识别的响应。") }
+        guard response.base_resp.status_code == 0 else {
+            let code = response.base_resp.status_code
+            // Never echo provider messages: custom endpoints may reflect credentials or text.
+            let hint: String
+            switch code {
+            case 1004, 2049: hint = "请检查 API Key 及其所属地区的接口地址。"
+            case 1008: hint = "账户余额不足，请检查 MiniMax 账户。"
+            case 1002: hint = "请求过于频繁，请稍后重试。"
+            default: hint = "请检查模型、音色和账户权限。"
+            }
+            throw LumaError.message("MiniMax 错误 \(code)。\(hint)")
+        }
+        guard let encoded = response.data?.audio, response.data?.status == 2,
+              !encoded.isEmpty, encoded.utf8.count <= 48 * 1024 * 1024, encoded.utf8.count % 2 == 0 else {
+            throw LumaError.message("MiniMax 没有返回完整的音频，请缩短文字后重试。")
+        }
+        var audio = Data(capacity: encoded.utf8.count / 2)
+        var high: UInt8?
+        for c in encoded.utf8 {
+            let value: UInt8
+            switch c {
+            case 48...57: value = c - 48
+            case 65...70: value = c - 55
+            case 97...102: value = c - 87
+            default: throw LumaError.message("MiniMax 音频编码无效。")
+            }
+            if let h = high { audio.append(h << 4 | value); high = nil } else { high = value }
+        }
+        return audio
     }
 }

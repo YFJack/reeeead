@@ -32,7 +32,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(413)
             return
         payload = json.loads(self.rfile.read(size))
-        print(json.dumps({"path": self.path, "fields": sorted(payload), "characters": len(payload.get("input", "")), "speed": payload.get("speed")}), flush=True)
+        print(json.dumps({"path": self.path, "fields": sorted(payload), "characters": len(payload.get("input", payload.get("text", ""))), "speed": payload.get("speed")}), flush=True)
         if self.path == "/slow":
             time.sleep(5)
         if self.path == "/unauthorized":
@@ -43,12 +43,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Location", "http://127.0.0.1:8642/speech")
             self.end_headers()
             return
+        body = AUDIO
+        content_type = "audio/wav"
+        if self.path == "/minimax":
+            body = json.dumps({"base_resp": {"status_code": 0}, "data": {"audio": AUDIO.hex(), "status": 2}}).encode()
+            content_type = "application/json"
+        elif self.path == "/minimax-error":
+            body = json.dumps({"base_resp": {"status_code": 1008, "status_msg": "do not echo this"}, "data": None}).encode()
+            content_type = "application/json"
         self.send_response(200)
-        self.send_header("Content-Type", "audio/wav")
-        self.send_header("Content-Length", str(len(AUDIO)))
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         try:
-            self.wfile.write(AUDIO)
+            self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError):
             pass
 

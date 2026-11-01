@@ -6,6 +6,7 @@ final class HotKeyCenter {
     private var handler: EventHandlerRef?
     private var mouseBindings: [UInt32: Shortcut] = [:]
     private var mouseTap: CFMachPort?
+    var mouseTapReady: Bool { mouseTap != nil }
     private var mouseSource: CFRunLoopSource?
     private var mouseRouter = MouseShortcutRouter()
     private var onCapture: ((Shortcut) -> Void)?

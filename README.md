@@ -11,7 +11,7 @@
 - **选区朗读**：在其他应用选中文字，按 `⌃⌥R` 开始朗读，再按一次停止。
 - **自定义全局快捷键**：两个功能分别绑定键盘组合键或鼠标侧键；侧键可搭配 ⌘ / ⌥ / ⌃ / ⇧。检测键盘注册冲突与两个功能的重复绑定。
 - **系统语音**：按文本选择中文或英文，也可以指定本机已安装的声音。支持语速设置、暂停、继续、停止。
-- **外部语音 API**：支持 OpenAI 兼容的语音合成协议，可配置完整地址、模型、音色与语速。API Key 保存在 macOS 钥匙串，按完整接口地址隔离。
+- **外部语音 API**：支持 MiniMax 原生协议与 OpenAI 兼容的语音合成协议，可配置完整地址、模型、音色与语速。API Key 保存在 macOS 钥匙串，按完整接口地址隔离。
 - **屏幕阅读标尺**：按 `⌃⌥L`，横线跟随鼠标；第一次点击固定上边界，向下移动，第二次点击固定下边界。区域之外变暗，中间保持原亮度。
 - **固定后照常操作**：阅读带停留在屏幕原位，鼠标点击和滚动穿透到原应用。再次按快捷键或 `Esc` 退出。
 - **轻量界面**：500 × 570 的小窗口、黑灰文字和暖白背景。主界面只保留朗读与标尺，其他选项收进设置。
@@ -48,7 +48,9 @@ open dist/Reeeead.app
 
 ### 外部语音服务
 
-设置 →「语音」→「外部 API」。填写**完整的语音接口地址**，并保存此地址对应的 Key。
+**MiniMax**：设置 →「语音」→「MiniMax」，保存 Key 后即可试听。默认使用 `https://api.minimax.cn/v1/t2a_v2`、`speech-2.8-hd` 和 `male-qn-qingse`；模型与音色均可编辑。按[官方同步语音接口](https://platform.minimax.cn/docs/api-reference/speech-t2a-http)发送请求并解析 JSON 中的音频。切换服务时保留各服务的配置。
+
+**OpenAI 兼容服务**：设置 →「语音」→「外部 API」。填写**完整的语音接口地址**，并保存此地址对应的 Key。
 
 默认地址是 `https://api.openai.com/v1/audio/speech`，默认模型 `tts-1`、音色 `alloy`。这些只是可编辑的兼容配置，不包含服务账户或免费额度。其他厂商必须接受以下请求格式：
 
@@ -62,7 +64,7 @@ open dist/Reeeead.app
 }
 ```
 
-请求为 `POST`，密钥通过 `Authorization: Bearer …` 发送。服务须直接返回音频二进制，不能只返回音频 URL 或 JSON。独立协议的厂商需要额外适配，**不是所有 TTS API 都自动兼容**。
+请求为 `POST`，密钥通过 `Authorization: Bearer …` 发送。此兼容模式下，服务须直接返回音频二进制，不能只返回音频 URL 或 JSON。独立协议的厂商需要额外适配，**不是所有 TTS API 都自动兼容**。
 
 - 远程地址必须使用 HTTPS；本机 `localhost` / `127.0.0.1` 可以使用 HTTP。
 - 空密钥允许调用本机免鉴权服务。
@@ -78,6 +80,7 @@ open dist/Reeeead.app
 - 系统语音由 macOS 本机语音引擎处理。Reeeead 不将系统朗读文本发送到外部 API。
 - 选择外部 API 后，**只有主动朗读的文字**会发送至所配置的服务；该服务自己的数据政策仍适用。
 - API Key 仅保存在钥匙串；语音设置和快捷键保存在本机 UserDefaults。试读区文字只保留在当前进程内。
+- 应用在本机保存 `~/Library/Application Support/Reeeead/permissions.json`，仅包含版本、安装路径、进程和权限状态，便于排查授权问题；不含选中文字、输入记录或密钥。
 - 标尺通过透明窗口绘制，不截图、不录屏，不需要屏幕录制权限。
 - 辅助功能权限用于读取选区、模拟复制，以及标尺工作期间监听并拦截 Esc。Esc 监听在退出标尺后释放。
 - 复制兼容模式先尝试辅助功能接口，只有读取失败才模拟 `⌘C`。复制成功后尽量恢复剪贴板；图片、文件或过大的剪贴板会跳过兼容复制。剪贴板管理器、延迟复制与并发写入可能影响恢复，敏感工作流可关闭兼容模式。
@@ -113,10 +116,10 @@ macOS 优先；尚不支持 Windows、OCR、图片/扫描件朗读、自动逐�
 
 ## Contributing / English
 
-Reeeead is a native macOS reading companion built with Swift, AppKit and SwiftUI. It reads selected text using system speech or a configurable OpenAI-compatible TTS endpoint, and provides a two-click, click-through screen reading band. Requires macOS 14+. No third-party runtime dependencies.
+Reeeead is a native macOS reading companion built with Swift, AppKit and SwiftUI. It reads selected text using system speech MiniMax or a configurable OpenAI-compatible TTS endpoint, and provides a two-click, click-through screen reading band. Requires macOS 14+. No third-party runtime dependencies.
 
 Build with `./scripts/build.sh`; run `swift test -j 1`. Contributions that improve selection compatibility, accessibility and provider adapters are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE) for app code and the geometric pixel echo mark. The bundled OpenDyslexic font is separately licensed under [SIL OFL 1.1](Sources/Reeeead/Resources/Fonts/OFL.txt). UI symbols use the native system symbol library. Generated logo concept and asset provenance: [docs/ASSETS.md](docs/ASSETS.md).
+[MIT](LICENSE) for app code and the geometric pixel echo mark. Space Grotesk is separately licensed under [SIL OFL 1.1](Sources/Reeeead/Resources/Fonts/SpaceGrotesk-OFL.txt). The retained OpenDyslexic font is separately licensed under [SIL OFL 1.1](Sources/Reeeead/Resources/Fonts/OFL.txt). UI symbols use the native system symbol library. Generated logo concept and asset provenance: [docs/ASSETS.md](docs/ASSETS.md).

@@ -4,6 +4,8 @@ import Combine
 
 @main struct ReeeeadApp {
     static func main() {
+        if CommandLine.arguments.contains("--configure-voice-stdin") { exit(VoiceConfiguration.importFromStandardInput()) }
+        if CommandLine.arguments.contains("--voice-status") { exit(VoiceConfiguration.status()) }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate

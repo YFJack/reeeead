@@ -56,14 +56,15 @@ struct MainView: View {
     }
     private var header: some View {
         HStack(spacing: 10) {
+            ReaderMark().frame(width: 32, height: 32)
             if model.page == .home {
-                ReaderWordmark()
+                ReaderWordmark(width: 150)
                 Spacer()
                 Button { model.page = .voice } label: { Image(systemName: "gearshape").font(.system(size: 17)).foregroundStyle(Ink.muted).frame(width: 30, height: 30) }.buttonStyle(.plain).help("设置").accessibilityLabel("设置")
             } else {
-                Button { model.page = .home } label: { Image(systemName: "chevron.left").font(.system(size: 15, weight: .medium)).frame(width: 25, height: 30) }.buttonStyle(.plain).accessibilityLabel("返回阅读")
-                Text("设置").font(.system(size: 21, weight: .semibold)); Spacer()
-                ReaderWordmark(width: 80).foregroundStyle(Ink.muted)
+                ReaderWordmark(width: 150)
+                Spacer()
+                Button { model.page = .home } label: { Image(systemName: "xmark").font(.system(size: 15, weight: .medium)).foregroundStyle(Ink.muted).frame(width: 30, height: 30) }.buttonStyle(.plain).help("返回阅读").accessibilityLabel("返回阅读")
             }
         }
     }
@@ -142,6 +143,10 @@ struct MainView: View {
                     Button(model.permission ? "系统设置" : "开启") { SelectionReader.requestPermission() }.buttonStyle(ReaderButtonStyle())
                 }
                 HStack { Text("用于读取选区、鼠标侧键和 Esc。").font(.system(size: 11)).foregroundStyle(Ink.muted); Spacer(); Button("重新检查") { model.refreshPermission() }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Ink.muted) }
+                if !model.permission {
+                    Text("系统开关已开？请移除旧的 Reeeead 记录，再添加当前应用，然后退出重开。").font(.system(size: 11)).foregroundStyle(Ink.muted).fixedSize(horizontal: false, vertical: true)
+                    Button("在访达中定位当前应用") { NSWorkspace.shared.selectFile(Bundle.main.bundlePath, inFileViewerRootedAtPath: "") }.buttonStyle(.plain).font(.system(size: 11)).underline()
+                }
             }
             Divider()
             SettingGroup(title: "兼容性") {
@@ -203,7 +208,7 @@ struct VoiceSettings: View {
     @State private var keyStatus = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingGroup(title: "语音来源") { Picker("语音来源", selection: $model.preferences.provider) { Text("系统语音").tag("system"); Text("外部 API").tag("api") }.pickerStyle(.segmented).labelsHidden() }
+            SettingGroup(title: "语音来源") { Picker("语音来源", selection: Binding(get: { model.preferences.provider }, set: { model.preferences.selectProvider($0) })) { Text("系统语音").tag("system"); Text("MiniMax").tag("minimax"); Text("兼容 API").tag("api") }.pickerStyle(.segmented).labelsHidden() }
             if model.preferences.provider == "system" {
                 SettingGroup(title: "声音") {
                     Picker("声音", selection: $model.preferences.systemVoice) {
@@ -227,7 +232,7 @@ struct VoiceSettings: View {
                         }
                         if !keyStatus.isEmpty { Text(keyStatus).font(.system(size: 11)).foregroundStyle(Ink.muted).fixedSize(horizontal: false, vertical: true) }
                     }
-                    Text("支持 OpenAI 兼容语音接口。朗读文字将发送至此服务，费用由你的账户承担。").font(.system(size: 11)).foregroundStyle(Ink.muted).lineSpacing(4)
+                    Text(model.preferences.provider == "minimax" ? "使用 MiniMax 原生语音接口。朗读文字将发送至该服务，费用由你的账户承担。" : "支持 OpenAI 兼容语音接口。朗读文字将发送至此服务，费用由你的账户承担。").font(.system(size: 11)).foregroundStyle(Ink.muted).lineSpacing(4)
                 }
             }
             Divider()

@@ -26,15 +26,11 @@ struct ReaderMark: View {
 struct ReaderWordmark: View {
     var width: CGFloat = 166
     var body: some View {
-        Group {
-            if let image = Brand.wordmark {
-                Image(nsImage: image).resizable().renderingMode(.template)
-                    .interpolation(.high).scaledToFit().frame(width: width, height: width / 3)
-                    .frame(width: width, height: width * 0.235).clipped()
-            } else {
-                Text("Reeeead").font(.custom(Brand.fontName, size: width * 0.145)).tracking(-1.5)
-            }
-        }.accessibilityLabel("Reeeead")
+        Text("Reeeead")
+            .font(.custom(Brand.fontName, size: width * 0.205))
+            .tracking(-0.9)
+            .fixedSize()
+            .accessibilityLabel("Reeeead")
     }
 }
 struct ReaderButtonStyle: ButtonStyle {

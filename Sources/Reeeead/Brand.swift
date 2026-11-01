@@ -2,7 +2,7 @@ import AppKit
 import CoreText
 
 enum Brand {
-    static let fontName = "OpenDyslexic-Regular"
+    static let fontName = "SpaceGrotesk-Medium"
     static let wordmark: NSImage? = {
         guard let url = resources.url(forResource: "wordmark", withExtension: "png", subdirectory: "Brand") else { return nil }
         return NSImage(contentsOf: url)
@@ -13,7 +13,7 @@ enum Brand {
         return .module
     }
     static func registerFont() {
-        guard let url = resources.url(forResource: "OpenDyslexic-Regular", withExtension: "otf", subdirectory: "Fonts") else { return }
+        guard let url = resources.url(forResource: "SpaceGrotesk-Medium", withExtension: "otf", subdirectory: "Fonts") else { return }
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
     }
 }
