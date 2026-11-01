@@ -38,3 +38,17 @@ Primary post published from @yfjack199017, with the landscape film and SRT capti
 https://x.com/yfjack199017/status/2116936600819290403
 
 The optional follow-up and Chinese variant remain drafts. Do not publish duplicates. Do not promise improved reading speed, clinical outcomes, universal app compatibility, or a notarized installer.
+
+
+## English edition follow-up — published
+
+https://x.com/yfjack199017/status/2116938900153454880
+
+> Now with English + Chinese UI, and a fully English film. Less lost in translation. Still occasionally lost in the same sentence.
+>
+> Reeeead: selected-text speech + a two-click reading band for Mac.
+>
+> Free, open source. Stars & feedback welcome:
+> https://github.com/YFJack/reeeead
+
+Attached: `reeeead-launch-en-landscape.mp4` and `reeeead-launch-en.srt` (English). Sent confirmation and standalone post verified.

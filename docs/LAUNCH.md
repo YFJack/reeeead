@@ -43,5 +43,6 @@ The bilingual update installs native app 0.4.0 on both configured Macs. Previous
 - 31 tests passed, including local HTTP/audio integration and localization resource/format checks. Release build succeeded. Both configured Macs received the same bundle; file hashes and code signatures verified. Local live UI switched to English and the genuine screenshot is `docs/screenshot-home-en.png`. MacBook live UI acceptance remains separate from installation verification.
 - English film: 35.25 seconds, landscape 1280 × 720 and portrait 720 × 1280, H.264/AAC at 24 fps, English narration, on-screen copy and SRT/VTT captions. Both complete files decoded successfully; key frames reviewed. Voice generation succeeded; subjective voice-quality acceptance remains with the user.
 - English website uses the English film and screenshot; Chinese edition remains available separately. Updated public deployment succeeded. Website link/asset/metadata validation passed.
-- English MP4 and subtitle files copied to the MacBook Downloads/Reeeead-launch directory; SHA-256 verified against originals.
-- English X update is prepared with video and captions; publication verification follows separately.
+- English MP4/subtitle delivery to the MacBook succeeded on retry after a transient SSH timeout. All four SHA-256 hashes match local originals in Downloads/Reeeead-launch.
+- English X update published with the 35-second video and English SRT captions: https://x.com/yfjack199017/status/2116938900153454880 . Sent confirmation and independent post page verified. The original Chinese-narrated post is retained.
+- Source preview release: https://github.com/YFJack/reeeead/releases/tag/v0.4.0 ; English landscape/portrait MP4, SRT, VTT and cover uploaded.
