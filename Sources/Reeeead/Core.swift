@@ -5,6 +5,7 @@ struct Shortcut: Codable, Equatable {
     var keyCode: UInt32
     var modifiers: UInt32
     var label: String
+    var mouseButton: Int? = nil
     static let read = Shortcut(keyCode: 15, modifiers: UInt32(controlKey | optionKey), label: "R")
     static let ruler = Shortcut(keyCode: 37, modifiers: UInt32(controlKey | optionKey), label: "L")
     var display: String {
@@ -13,7 +14,22 @@ struct Shortcut: Codable, Equatable {
         if modifiers & UInt32(optionKey) != 0 { s += "⌥" }
         if modifiers & UInt32(shiftKey) != 0 { s += "⇧" }
         if modifiers & UInt32(cmdKey) != 0 { s += "⌘" }
-        return s + label
+        return s + (mouseButton.map { "鼠标 \($0 + 1)" } ?? label)
+    }
+    func conflicts(with other: Shortcut) -> Bool {
+        modifiers == other.modifiers && mouseButton == other.mouseButton && (mouseButton != nil || keyCode == other.keyCode)
+    }
+    static func mouse(button: Int, modifiers: UInt32 = 0) -> Shortcut? {
+        guard (3...31).contains(button) else { return nil } // Preserve left, right and middle click.
+        return Shortcut(keyCode: 0, modifiers: modifiers, label: "鼠标 \(button + 1)", mouseButton: button)
+    }
+    static func modifiers(from flags: CGEventFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.maskControl) { result |= UInt32(controlKey) }
+        if flags.contains(.maskAlternate) { result |= UInt32(optionKey) }
+        if flags.contains(.maskShift) { result |= UInt32(shiftKey) }
+        if flags.contains(.maskCommand) { result |= UInt32(cmdKey) }
+        return result
     }
     static func from(_ event: NSEvent) -> Shortcut? {
         let f = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
@@ -26,6 +42,34 @@ struct Shortcut: Codable, Equatable {
         if f.contains(.shift) { mods |= UInt32(shiftKey) }
         if f.contains(.command) { mods |= UInt32(cmdKey) }
         return Shortcut(keyCode: UInt32(event.keyCode), modifiers: mods, label: name)
+    }
+}
+
+// Keep a press/release pair together even if modifiers change before release.
+struct MouseShortcutRouter {
+    enum Phase { case down, up, drag }
+    struct Decision {
+        var consume = false
+        var action: UInt32?
+        var captured: Shortcut?
+    }
+    private struct Press { let shortcut: Shortcut; let action: UInt32? }
+    private var presses: [Int: Press] = [:]
+    mutating func route(button: Int, modifiers: UInt32, phase: Phase, bindings: [UInt32: Shortcut], recording: Bool) -> Decision {
+        guard let shortcut = Shortcut.mouse(button: button, modifiers: modifiers) else { return Decision() }
+        switch phase {
+        case .down:
+            if presses[button] != nil { return Decision(consume: true) }
+            let action = bindings.first { $0.value.conflicts(with: shortcut) }?.key
+            guard recording || action != nil else { return Decision() }
+            presses[button] = Press(shortcut: shortcut, action: action)
+            return Decision(consume: true)
+        case .drag:
+            return Decision(consume: presses[button] != nil)
+        case .up:
+            guard let press = presses.removeValue(forKey: button) else { return Decision() }
+            return Decision(consume: true, action: press.action, captured: recording ? press.shortcut : nil)
+        }
     }
 }
 

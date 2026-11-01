@@ -16,6 +16,9 @@ jobs:
       - name: Verify signature
         run: |
           codesign --verify --deep --strict dist/Reeeead.app
+          test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Fonts/OpenDyslexic-Regular.otf
+          test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Fonts/OFL.txt
+          test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Brand/wordmark.png
       - uses: actions/upload-artifact@v4
         with:
           name: Reeeead-macOS-unsigned-for-distribution

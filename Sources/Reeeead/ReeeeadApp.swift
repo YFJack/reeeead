@@ -21,6 +21,7 @@ import Combine
     private var toastDismiss: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Brand.registerFont()
         model = AppModel()
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 570), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.title = "Reeeead"
@@ -83,7 +84,7 @@ import Combine
     private func add(_ menu: NSMenu, _ title: String, _ action: Selector) { let item = NSMenuItem(title: title, action: action, keyEquivalent: ""); item.target = self; menu.addItem(item) }
     @objc func showWindow() { NSApp.setActivationPolicy(.regular); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); model.refreshPermission() }
     @objc private func showSettings() { model.page = .shortcuts; showWindow() }
-    @objc private func showAbout() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Reeeead", .applicationVersion: "0.2.0", .credits: NSAttributedString(string: "开源阅读辅助工具 · MIT License")]) }
+    @objc private func showAbout() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Reeeead", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "", .credits: NSAttributedString(string: "开源阅读辅助工具 · MIT License")]) }
     @objc private func readSelection() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.speech.selection(preferences: self.model.preferences) } }
     @objc private func pauseSpeech() { model.speech.togglePause() }
     @objc private func toggleRuler() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.ruler.toggle(preferences: self.model.preferences) } }
@@ -109,14 +110,6 @@ import Combine
         toastDismiss = work; DispatchQueue.main.asyncAfter(deadline: .now() + 4.5, execute: work)
     }
     private static func statusImage() -> NSImage {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
-            NSColor.black.setFill()
-            for (index, width) in [9.0, 15.0, 11.0].enumerated() {
-                NSBezierPath(roundedRect: NSRect(x: 1.5, y: 12 - Double(index) * 5, width: width, height: 2.5), xRadius: 1.25, yRadius: 1.25).fill()
-            }
-            return true
-        }
-        image.isTemplate = true
-        return image
+        PixelMark.image(size: NSSize(width: 16, height: 14), template: true)
     }
 }

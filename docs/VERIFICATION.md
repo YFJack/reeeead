@@ -1,38 +1,43 @@
-# Verification — 0.2.0 compact redesign
+# Verification — 0.3.0
 
-Environment: Apple Silicon Mac mini, macOS 26.5.2, Swift 6.3.3. Validation date: 2026-11-01. Minimum target macOS 14; older supported versions have not been manually tested.
+Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, Swift 6.3.3. Second install: Apple Silicon MacBook, macOS 26.2. Minimum supported target is macOS 14; older supported OS versions have not been manually tested.
 
-## Completed
+## Completed on this build
 
-- Release app builds with a single compiler job. Bundle is approximately 1.3 MB before adding any distribution archive.
-- `codesign --verify --deep --strict dist/Reeeead.app` succeeds for the local ad-hoc signature.
-- All 9 automated tests pass with the local HTTP fixture enabled: 6 core tests, 3 real HTTP/audio lifecycle tests.
-- Ruler state tests cover the two clicks, fixed geometry, upward movement, minimum band height and screen-edge clamping.
-- Request tests cover body fields, custom model/voice, speed, empty and oversized inputs, endpoint restrictions and absent API key.
-- Local fixture integration covers actual audio decoding/playback completion, pause/resume, cancellation before a delayed response, 401 handling and refusal to follow a 307 redirect.
-- Native UI: the renamed app launches in a 500 × 570 window. The home screen uses a neutral palette, two modes and a settings button, with no sidebar or decorative image. The prior illustration is no longer bundled.
-- Previous UI baseline (same speech engine): system speech enters playback and completes; local API fixture enters external playback and completes.
-- Previous UI baseline (same recorder): shortcut recording rejects a duplicate of the other action and saves the chosen shortcut.
-- Native UI: when Accessibility is absent, the ruler refuses to open and explains the required permission instead of trapping the user in an overlay.
-- The compact app is installed at `~/Applications/Reeeead.app`; the previous installed app was moved to an ignored local backup.
-- The previous functional baseline passed [GitHub Actions run 41320288673](https://github.com/YFJack/reeeead/actions/runs/41320288673) on macOS 15. The renamed build is checked separately; local-fixture tests remain opt-in in CI.
+- Release build with one compiler job. Installed bundle is approximately 2.1 MB.
+- 14 automated tests pass: 7 core/branding tests and 7 mouse-shortcut tests. The 3 opt-in HTTP/audio integration tests are skipped in the default invocation. These 3 integration tests passed on the preceding build; the speech engine was not changed in this update.
+- Mouse tests cover legacy keyboard decoding, side-button serialization, conflict detection, ignoring ordinary clicks and unmatched modifiers, complete down/up consumption, release after modifier changes, a single action per press, simultaneous buttons and recording on release.
+- The unmodified OpenDyslexic font loads from the bundled resources without system installation, and its OFL license is included.
+- Native UI: the new generated wordmark renders in the compact window. Home and shortcut-recorder screenshots are saved in this directory.
+- Native UI: the side-button recorder can install its event tap on the Mac mini after Accessibility is enabled. The Mouse 4 preset saves, survives an app restart and displays correctly. Attempting to assign it to the other action is rejected. Cancel restores registrations. Keyboard recording still works; test changes were restored to the original keyboard bindings.
+- Accessibility was rebound to the final installed Mac mini app and recognized after restart. On the earlier 0.2.1 build, the ruler successfully entered its active state after permission was granted; this alone does not verify positioning/click-through.
+- Both Macs received the same 0.3.0 app. The installer checked SHA-256 for every bundled file, architecture compatibility and code signature. Installed executable hashes matched on both hosts.
+- Both personal installations now use an existing Apple Development identity. The signing identity configuration remains local and ignored by Git. No private key or API key is copied by deployment.
+
+## Previous unchanged-engine checks
+
+- Ruler geometry tests cover two clicks, fixed bounds, upward movement, minimum band height and screen-edge clamping.
+- Request validation covers model/voice fields, speed, empty/oversized input, endpoint restrictions and absent API key.
+- Local fixture integration exercised real HTTP/audio decoding and playback completion, pause/resume, cancellation before a delayed response, 401 handling and refusal to follow a 307 redirect.
+- System-speech and local-fixture playback were exercised through the native UI on the previous functional baseline.
+- The earlier baseline passed [GitHub Actions run 41320288673](https://github.com/YFJack/reeeead/actions/runs/41320288673) on macOS 15. Current commits trigger a separate CI run.
 
 ## Pending / not claimed
 
-- The user authorized Accessibility access. macOS requested administrator authentication, which is pending completion in the system dialog. Real cross-application selection, positioning click interception, locked-overlay scrolling/click-through, global Esc and global shortcut behavior still need live verification.
-- Full-screen apps, Spaces and multiple monitors require live verification; implementation uses AppKit's full-screen auxiliary and all-Spaces behaviors, but API availability alone does not prove every app combination works.
-- No real external provider credentials were used. The local fixture validates protocol handling, not a provider's live authentication, voice quality, latency, quotas or billing.
-- Keychain read/write error handling is implemented. Actual user-secret storage has not been exercised with a real credential.
-- Developer ID signing, Apple notarization and a broadly distributed binary release have not been completed.
-- This is an initial product build, not a clinical evaluation of reading outcomes.
+- Physical side-button events have not yet been confirmed end-to-end with the user's mouse. Successful preset saving and pure routing tests are not hardware acceptance. Mouse software may remap side buttons into keyboard macros or consumer events.
+- The MacBook app is installed and running; its user reported Accessibility as not enabled. Local permissions cannot be copied between Macs. Follow-up authorization and physical input testing are in progress.
+- Real cross-app selected-text capture, global keyboard invocation, full-screen ruler positioning, locked-overlay scrolling/click-through and global Esc need complete live acceptance. The automation tool's app-targeted input cannot establish all global-event behavior.
+- Full-screen apps, Spaces and multiple displays require live verification.
+- No real external-provider credentials were used. Fixture tests do not prove a provider's authentication, voice quality, quotas, latency or billing. Actual user-secret Keychain storage has not been exercised with a real credential.
+- Developer ID signing, Apple notarization and a broadly distributed binary release are not completed. Development signing is not notarization.
+- This product has not undergone clinical evaluation of reading outcomes.
 
-## Manual acceptance checklist
+## Manual acceptance
 
-1. Move app to its stable install path and enable Accessibility for Reeeead.
-2. In TextEdit, select only part of a sentence; invoke read shortcut. Check that only that selection is read and source app keeps focus.
-3. Repeat in browser, PDF reader and frequently used chat app. Record which use direct AX selection and which require copy fallback.
-4. Place a known string on the clipboard; use copy fallback and verify it is restored. Test no selection and unsupported content without reading old clipboard data.
-5. Start ruler over a page containing clickable links. First click sets top, second click sets bottom; neither click should open a link.
-6. After locking, click/select/scroll the page. Band must remain stationary, source interaction must work, Esc must dismiss the overlay without dismissing a source-app dialog.
-7. Toggle with the shortcut in every state; try upward movement, bottom screen edge, full-screen app, another Space and a second display.
-8. Configure a real compatible API locally and audition a non-sensitive sample. Test invalid key and cancellation on a slow connection.
+1. On each Mac, enable Accessibility for the installed Reeeead copy, quit/reopen, and confirm “辅助功能已开启”.
+2. Open shortcut recording and physically press/release each side button. Test a modifier plus side button, duplicate assignment, cancel and relaunch. Confirm the configured action runs once and browser navigation does not also happen.
+3. In TextEdit, select part of a sentence and invoke reading. Check that only the selection is read and the source app retains focus. Repeat in the browser, PDF reader and usual chat app.
+4. Test copy fallback with known clipboard content; confirm restoration, no stale-text reading and cancellation cleanup.
+5. Place a ruler over clickable content. Neither placement click should reach the underlying page. After lock, click/select/scroll the page; the band must remain fixed. Esc should close the ruler without closing a source-app dialog.
+6. Test keyboard/side-button toggling in every ruler state, screen edges, full-screen apps, another Space and a second display.
+7. Configure a real API locally and audition a non-sensitive sample; test invalid authentication and slow-response cancellation.

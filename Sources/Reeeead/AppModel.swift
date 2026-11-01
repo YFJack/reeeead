@@ -11,6 +11,8 @@ enum Page: String, CaseIterable { case home = "阅读", voice = "语音", ruler 
     @Published var notice = ""
     @Published var sample = "选中文字，按下快捷键，就能听到朗读。"
     @Published var recording: UInt32?
+    @Published var recordingError = ""
+    @Published var mouseRecordingAvailable = false
     let speech = SpeechEngine()
     let ruler = RulerController()
     let hotKeys = HotKeyCenter()
@@ -31,18 +33,30 @@ enum Page: String, CaseIterable { case home = "阅读", voice = "语音", ruler 
     func registerShortcuts() {
         hotKeys.unregisterAll()
         let read = hotKeys.register(preferences.readShortcut, id: 1)
+        let readError = hotKeys.registrationError
         let ruler = hotKeys.register(preferences.rulerShortcut, id: 2)
-        if !read || !ruler { notice = "快捷键被其他应用占用，请在「快捷键」中重新设置。" }
+        notice = !read ? readError : (!ruler ? hotKeys.registrationError : "")
     }
-    func beginRecording(_ id: UInt32) { hotKeys.unregisterAll(); recording = id; notice = "" }
+    func beginRecording(_ id: UInt32) {
+        ruler.stop()
+        hotKeys.unregisterAll(); recording = id; notice = ""; recordingError = ""
+        mouseRecordingAvailable = hotKeys.beginMouseRecording { [weak self] shortcut in
+            guard let self, let id = self.recording else { return }
+            self.recordingError = self.acceptShortcut(shortcut, id: id) ?? ""
+        }
+    }
     func acceptShortcut(_ shortcut: Shortcut, id: UInt32) -> String? {
         let other = id == 1 ? preferences.rulerShortcut : preferences.readShortcut
-        if shortcut.keyCode == other.keyCode && shortcut.modifiers == other.modifiers { return "两个功能不能使用同一组快捷键，请换一组。" }
-        guard hotKeys.register(shortcut, id: id) else { return "这组快捷键已被系统或其他应用占用，请换一组。" }
+        if shortcut.conflicts(with: other) { return "两个功能不能使用同一组快捷键，请换一组。" }
+        guard hotKeys.register(shortcut, id: id) else { return hotKeys.registrationError }
         hotKeys.unregisterAll()
         if id == 1 { preferences.readShortcut = shortcut } else { preferences.rulerShortcut = shortcut }
         recording = nil
         return nil
     }
-    func refreshPermission() { permission = SelectionReader.permitted }
+    func refreshPermission() {
+        let changed = permission != SelectionReader.permitted
+        permission = SelectionReader.permitted
+        if recording == nil && (changed || preferences.readShortcut.mouseButton != nil || preferences.rulerShortcut.mouseButton != nil) { registerShortcuts() }
+    }
 }

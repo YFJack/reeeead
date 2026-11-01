@@ -7,9 +7,17 @@ for size in [16, 32, 64, 128, 256, 512, 1024] {
     let scale = CGFloat(size) / 100
     NSColor(calibratedRed: 0.97, green: 0.965, blue: 0.95, alpha: 1).setFill()
     NSBezierPath(roundedRect: NSRect(x: 4 * scale, y: 4 * scale, width: 92 * scale, height: 92 * scale), xRadius: 22 * scale, yRadius: 22 * scale).fill()
-    NSColor(calibratedRed: 0.14, green: 0.14, blue: 0.13, alpha: 1).setFill()
-    for (index, width) in [34.0, 54.0, 42.0].enumerated() {
-        NSBezierPath(roundedRect: NSRect(x: 24 * scale, y: (64 - CGFloat(index) * 17) * scale, width: width * scale, height: 8 * scale), xRadius: 4 * scale, yRadius: 4 * scale).fill()
+    NSGraphicsContext.current?.shouldAntialias = false
+    let rows = ["0111", "1000", "1111", "1000", "0111"]
+    for layer in 0..<3 {
+        NSColor(calibratedWhite: 0.145, alpha: [0.18, 0.42, 1.0][layer]).setFill()
+        for (y, row) in rows.enumerated() {
+            for (x, pixel) in row.enumerated() where pixel == "1" {
+                NSRect(x: (22 + CGFloat(x + layer * 2) * 7) * scale,
+                       y: (74.5 - CGFloat(y + layer + 1) * 7) * scale,
+                       width: 7 * scale, height: 7 * scale).fill()
+            }
+        }
     }
     image.unlockFocus()
     let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!

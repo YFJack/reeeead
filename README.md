@@ -9,7 +9,7 @@
 ## 能做什么
 
 - **选区朗读**：在其他应用选中文字，按 `⌃⌥R` 开始朗读，再按一次停止。
-- **自定义全局快捷键**：两个功能可以分别设置，检测系统注册冲突与重复设置。
+- **自定义全局快捷键**：两个功能分别绑定键盘组合键或鼠标侧键；侧键可搭配 ⌘ / ⌥ / ⌃ / ⇧。检测键盘注册冲突与两个功能的重复绑定。
 - **系统语音**：按文本选择中文或英文，也可以指定本机已安装的声音。支持语速设置、暂停、继续、停止。
 - **外部语音 API**：支持 OpenAI 兼容的语音合成协议，可配置完整地址、模型、音色与语速。API Key 保存在 macOS 钥匙串，按完整接口地址隔离。
 - **屏幕阅读标尺**：按 `⌃⌥L`，横线跟随鼠标；第一次点击固定上边界，向下移动，第二次点击固定下边界。区域之外变暗，中间保持原亮度。
@@ -37,6 +37,14 @@ open dist/Reeeead.app
 4. 按 `⌃⌥L` 开始设置阅读带。定位的两次点击不会传给底层应用；第二次松开鼠标后恢复普通点击与滚动。
 
 标尺只覆盖**启动时鼠标所在的显示器**。下边界不能越过上边界，最小高度为 8 点。屏幕配置改变或电脑休眠时自动收起。
+
+### 鼠标侧键
+
+点击首页的快捷键按钮，或设置 →「快捷键」，直接按下并松开侧键即可录入；也可以选择「侧键 1 · 鼠标 4」或「侧键 2 · 鼠标 5」。需要先开启 Reeeead 的辅助功能权限，每台 Mac 单独授权。
+
+匹配的侧键在松开时触发一次，按下和松开都会拦截，避免同时触发浏览器导航。未绑定的侧键以及左键、右键、中键保持原样。鼠标驱动若已将侧键改成键盘宏，可改为录入对应组合键，或在鼠标驱动中恢复普通鼠标 4 / 5。硬件兼容性及实测边界见 [验证记录](docs/VERIFICATION.md)。
+
+多台 Mac 的安装与更新见 [部署说明](docs/DEPLOYMENT.md)。
 
 ### 外部语音服务
 
@@ -111,4 +119,4 @@ Build with `./scripts/build.sh`; run `swift test -j 1`. Contributions that impro
 
 ## License
 
-[MIT](LICENSE). The app icon is an original geometric reading mark. UI symbols use the native system symbol library. No generated illustration, third-party font or stock asset is bundled. See [docs/ASSETS.md](docs/ASSETS.md).
+[MIT](LICENSE) for app code and the geometric pixel echo mark. The bundled OpenDyslexic font is separately licensed under [SIL OFL 1.1](Sources/Reeeead/Resources/Fonts/OFL.txt). UI symbols use the native system symbol library. Generated logo concept and asset provenance: [docs/ASSETS.md](docs/ASSETS.md).

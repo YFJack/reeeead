@@ -15,11 +15,26 @@ extension Color {
 struct ReaderMark: View {
     var body: some View {
         Canvas { c, s in
-            for (i, width) in [0.62, 1.0, 0.78].enumerated() {
-                let r = CGRect(x: 0, y: CGFloat(i) * s.height * 0.34, width: s.width * width, height: s.height * 0.16)
-                c.fill(Path(roundedRect: r, cornerRadius: s.height * 0.08), with: .color(Ink.dark))
+            for layer in 0..<3 {
+                for rect in PixelMark.rectangles(in: CGRect(origin: .zero, size: s), layer: layer) {
+                    c.fill(Path(rect), with: .color(Ink.dark.opacity(PixelMark.shades[layer])), style: FillStyle(antialiased: false))
+                }
             }
         }.accessibilityHidden(true)
+    }
+}
+struct ReaderWordmark: View {
+    var width: CGFloat = 166
+    var body: some View {
+        Group {
+            if let image = Brand.wordmark {
+                Image(nsImage: image).resizable().renderingMode(.template)
+                    .interpolation(.high).scaledToFit().frame(width: width, height: width / 3)
+                    .frame(width: width, height: width * 0.235).clipped()
+            } else {
+                Text("Reeeead").font(.custom(Brand.fontName, size: width * 0.145)).tracking(-1.5)
+            }
+        }.accessibilityLabel("Reeeead")
     }
 }
 struct ReaderButtonStyle: ButtonStyle {

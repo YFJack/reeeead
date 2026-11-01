@@ -6,7 +6,6 @@ struct MainView: View {
     @ObservedObject var speech: SpeechEngine
     @ObservedObject var ruler: RulerController
     @State private var mode = "read"
-    @State private var recordingError = ""
     var body: some View {
         VStack(spacing: 0) {
             header.padding(.horizontal, 28).padding(.top, 22).padding(.bottom, 23)
@@ -30,15 +29,26 @@ struct MainView: View {
         }
         .background(Ink.paper).foregroundStyle(Ink.dark).tint(Ink.dark)
         .frame(minWidth: 460, minHeight: 540).preferredColorScheme(.light)
-        .sheet(isPresented: Binding(get: { model.recording != nil }, set: { if !$0 { model.recording = nil } }), onDismiss: { model.registerShortcuts(); recordingError = "" }) {
+        .sheet(isPresented: Binding(get: { model.recording != nil }, set: { if !$0 { model.recording = nil } }), onDismiss: { model.registerShortcuts(); model.recordingError = "" }) {
             VStack(spacing: 18) {
                 Text("设置快捷键").font(.system(size: 20, weight: .semibold))
-                Text("按住 ⌘、⌥ 或 ⌃，再按一个字母或数字。").font(.system(size: 12)).foregroundStyle(Ink.muted)
+                Text("按下鼠标侧键，或使用键盘组合键。").font(.system(size: 12)).foregroundStyle(Ink.muted)
+                Text(model.mouseRecordingAvailable ? "侧键可搭配 ⌘ ⌥ ⌃ ⇧，松开即可保存。" : "侧键需先开启辅助功能权限。键盘请搭配 ⌘、⌥ 或 ⌃。").font(.system(size: 11)).foregroundStyle(Ink.muted).multilineTextAlignment(.center)
                 KeyCap(text: "等待按键…")
-                if !recordingError.isEmpty { Text(recordingError).font(.system(size: 12)).foregroundStyle(.orange) }
+                if model.mouseRecordingAvailable {
+                    HStack(spacing: 12) {
+                        ForEach(3...4, id: \.self) { button in
+                            Button("侧键 \(button - 2) · 鼠标 \(button + 1)") {
+                                guard let id = model.recording, let shortcut = Shortcut.mouse(button: button) else { return }
+                                model.recordingError = model.acceptShortcut(shortcut, id: id) ?? ""
+                            }.buttonStyle(ReaderButtonStyle())
+                        }
+                    }
+                }
+                if !model.recordingError.isEmpty { Text(model.recordingError).font(.system(size: 12)).foregroundStyle(.orange) }
                 ShortcutCapture(onShortcut: { shortcut in
                     guard let id = model.recording else { return }
-                    recordingError = model.acceptShortcut(shortcut, id: id) ?? ""
+                    model.recordingError = model.acceptShortcut(shortcut, id: id) ?? ""
                 }, onCancel: { model.recording = nil }).frame(width: 1, height: 1)
                 Button("取消") { model.recording = nil }.buttonStyle(ReaderButtonStyle()).keyboardShortcut(.cancelAction)
             }.padding(30).frame(width: 360).background(Ink.paper)
@@ -47,14 +57,13 @@ struct MainView: View {
     private var header: some View {
         HStack(spacing: 10) {
             if model.page == .home {
-                ReaderMark().frame(width: 22, height: 24)
-                Text("Reeeead").font(.system(size: 25, weight: .semibold, design: .rounded)).tracking(-1)
+                ReaderWordmark()
                 Spacer()
                 Button { model.page = .voice } label: { Image(systemName: "gearshape").font(.system(size: 17)).foregroundStyle(Ink.muted).frame(width: 30, height: 30) }.buttonStyle(.plain).help("设置").accessibilityLabel("设置")
             } else {
                 Button { model.page = .home } label: { Image(systemName: "chevron.left").font(.system(size: 15, weight: .medium)).frame(width: 25, height: 30) }.buttonStyle(.plain).accessibilityLabel("返回阅读")
                 Text("设置").font(.system(size: 21, weight: .semibold)); Spacer()
-                Text("Reeeead").font(.system(size: 13, weight: .medium, design: .rounded)).foregroundStyle(Ink.muted)
+                ReaderWordmark(width: 80).foregroundStyle(Ink.muted)
             }
         }
     }
@@ -132,7 +141,7 @@ struct MainView: View {
                     Label(model.permission ? "辅助功能已开启" : "辅助功能未开启", systemImage: model.permission ? "checkmark.circle" : "hand.raised").font(.system(size: 13)); Spacer()
                     Button(model.permission ? "系统设置" : "开启") { SelectionReader.requestPermission() }.buttonStyle(ReaderButtonStyle())
                 }
-                HStack { Text("用于读取选中文字和响应 Esc。").font(.system(size: 11)).foregroundStyle(Ink.muted); Spacer(); Button("重新检查") { model.refreshPermission() }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Ink.muted) }
+                HStack { Text("用于读取选区、鼠标侧键和 Esc。").font(.system(size: 11)).foregroundStyle(Ink.muted); Spacer(); Button("重新检查") { model.refreshPermission() }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Ink.muted) }
             }
             Divider()
             SettingGroup(title: "兼容性") {
