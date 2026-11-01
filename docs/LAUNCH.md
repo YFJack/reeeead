@@ -26,6 +26,13 @@
 
 ## External publication boundary
 
-X CLI `xurl` 1.3.4 is installed. User login and developer app/OAuth setup remain incomplete. The text in `marketing/launch-copy.md` is a prepared draft, not evidence of a published post. Verify the authenticated account before sending it with the landscape film.
+X CLI `xurl` 1.3.4 is installed. X web login succeeded. The developer onboarding form is filled; acceptance of the binding developer agreement is awaiting explicit user confirmation. Developer app/OAuth setup remains incomplete. The text in `marketing/launch-copy.md` is a prepared draft, not evidence of a published post. Verify the authenticated account before sending it with the landscape film.
 
 This launch does not change the installed native app. Previously reported physical shortcut, mouse-side-button and external-display acceptance gaps remain in `VERIFICATION.md`.
+
+## Repository and MacBook delivery
+
+- Public source and launch kit pushed in commit `f6edda58ee957c2d276ad09896452207503e7f25`.
+- Repository About text, public website URL and relevant topics updated and read back.
+- Source preview release: https://github.com/YFJack/reeeead/releases/tag/v0.3.2 . Both MP4s, the SRT and cover were uploaded and verified in the release asset list.
+- The same four files were copied into the MacBook Downloads/Reeeead-launch folder; all SHA-256 hashes match the Mac mini. No application update was necessary.

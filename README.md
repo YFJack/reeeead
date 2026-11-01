@@ -6,7 +6,7 @@
 
 Selected-text speech. A two-click reading band. A small, open-source Mac companion.
 
-[Website](https://reeeead.frosty-olive-3604.chatgpt.site) · [简体中文](README.zh-CN.md) · [Get started](#get-started) · [Contribute](CONTRIBUTING.md)
+[Website](https://reeeead.frosty-olive-3604.chatgpt.site) · [简体中文](README.zh-CN.md) · [Get started](#get-started) · [Contribute](CONTRIBUTING.md) · [Film & press kit](https://github.com/YFJack/reeeead/releases/tag/v0.3.2)
 
 [![macOS build and tests](https://github.com/YFJack/reeeead/actions/workflows/build.yml/badge.svg)](https://github.com/YFJack/reeeead/actions/workflows/build.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-747f68)
