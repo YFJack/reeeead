@@ -1,6 +1,6 @@
 # Architecture
 
-Luma is a Swift Package executable wrapped in a normal `.app` by `scripts/build.sh`. SwiftUI handles settings; AppKit owns windows, menu-bar lifecycle and the screen overlay. It has no third-party runtime dependencies.
+Reeeead is a Swift Package executable wrapped in a normal `.app` by `scripts/build.sh`. SwiftUI handles settings; AppKit owns windows, menu-bar lifecycle and the screen overlay. It has no third-party runtime dependencies.
 
 | Component | Responsibility |
 | --- | --- |
@@ -39,3 +39,7 @@ Global Carbon hotkeys do not require permission; reading another app's selected 
 The app is outside the App Sandbox because it integrates with other applications through accessibility. There is no privileged helper or background launch agent. Launch at login is not automatically enabled.
 
 For production releases, maintain a stable signing identity, validate TCC persistence across updates and add Developer ID notarization. The current build script produces a locally runnable ad-hoc-signed bundle.
+
+## Naming compatibility
+
+The product, executable and Swift package are named Reeeead as of 0.2. The existing bundle identifier `app.luma.reader`, preference key and Keychain service are retained so changing the visible name does not discard user settings or stored credentials.

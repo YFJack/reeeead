@@ -5,7 +5,7 @@ about: Report a reproducible problem without including private text or keys
 
 **macOS version / 系统版本**
 
-**Luma version / 应用版本**
+**Reeeead version / 应用版本**
 
 **Source app / 出现问题的应用**
 

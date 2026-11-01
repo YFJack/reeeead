@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import Combine
 
-@main struct LumaApp {
+@main struct ReeeeadApp {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
@@ -22,12 +22,12 @@ import Combine
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         model = AppModel()
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 790), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
-        window.title = "一行 · Luma"
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 570), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
+        window.title = "Reeeead"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.backgroundColor = NSColor(Ink.paper)
-        window.minSize = NSSize(width: 940, height: 700)
+        window.minSize = NSSize(width: 460, height: 540)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.contentView = NSHostingView(rootView: MainView(model: model, speech: model.speech, ruler: model.ruler))
@@ -36,13 +36,13 @@ import Combine
         buildMainMenu()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = Self.statusImage()
-        statusItem.button?.toolTip = "一行 · Luma"
+        statusItem.button?.toolTip = "Reeeead"
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
         subscription = model.speech.$message.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] text in
             guard let self else { return }
-            self.statusItem.button?.toolTip = "Luma · \(text)"
+            self.statusItem.button?.toolTip = "Reeeead · \(text)"
             if !NSApp.isActive && !self.model.ruler.active { self.showToast(text) }
         }
         showWindow()
@@ -51,12 +51,12 @@ import Combine
         let main = NSMenu()
         let appMenu = NSMenu()
         let appItem = NSMenuItem(); appItem.submenu = appMenu; main.addItem(appItem)
-        appMenu.addItem(withTitle: "关于一行 · Luma", action: #selector(showAbout), keyEquivalent: "")
+        appMenu.addItem(withTitle: "关于Reeeead", action: #selector(showAbout), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "设置…", action: #selector(showSettings), keyEquivalent: ",")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "隐藏 Luma", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "退出 Luma", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "隐藏 Reeeead", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "退出 Reeeead", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let edit = NSMenu(title: "编辑")
         let editItem = NSMenuItem(title: "编辑", action: nil, keyEquivalent: ""); editItem.submenu = edit; main.addItem(editItem)
         edit.addItem(withTitle: "撤销", action: Selector(("undo:")), keyEquivalent: "z")
@@ -70,20 +70,20 @@ import Combine
     }
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        let heading = NSMenuItem(title: "一行 · Luma", action: nil, keyEquivalent: ""); heading.isEnabled = false; menu.addItem(heading)
-        add(menu, "打开阅读空间", #selector(showWindow))
+        let heading = NSMenuItem(title: "Reeeead", action: nil, keyEquivalent: ""); heading.isEnabled = false; menu.addItem(heading)
+        add(menu, "打开 Reeeead", #selector(showWindow))
         menu.addItem(.separator())
         add(menu, model.speech.busy ? "停止朗读" : "朗读选中文字  \(model.preferences.readShortcut.display)", #selector(readSelection))
         if model.speech.state == .speaking || model.speech.state == .paused { add(menu, model.speech.state == .paused ? "继续朗读" : "暂停朗读", #selector(pauseSpeech)) }
         add(menu, model.ruler.active ? "收起标尺" : "开启阅读标尺  \(model.preferences.rulerShortcut.display)", #selector(toggleRuler))
         menu.addItem(.separator())
         add(menu, "设置与权限…", #selector(showSettings))
-        add(menu, "退出 Luma", #selector(quit))
+        add(menu, "退出 Reeeead", #selector(quit))
     }
     private func add(_ menu: NSMenu, _ title: String, _ action: Selector) { let item = NSMenuItem(title: title, action: action, keyEquivalent: ""); item.target = self; menu.addItem(item) }
     @objc func showWindow() { NSApp.setActivationPolicy(.regular); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); model.refreshPermission() }
     @objc private func showSettings() { model.page = .shortcuts; showWindow() }
-    @objc private func showAbout() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "一行 · Luma", .applicationVersion: "0.1.0", .credits: NSAttributedString(string: "一次一行，也在向前。\n开源阅读辅助工具 · MIT License")]) }
+    @objc private func showAbout() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Reeeead", .applicationVersion: "0.2.0", .credits: NSAttributedString(string: "开源阅读辅助工具 · MIT License")]) }
     @objc private func readSelection() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.speech.selection(preferences: self.model.preferences) } }
     @objc private func pauseSpeech() { model.speech.togglePause() }
     @objc private func toggleRuler() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.ruler.toggle(preferences: self.model.preferences) } }
@@ -101,7 +101,7 @@ import Combine
         panel.level = .floating; panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentView = NSHostingView(rootView: HStack(spacing: 13) {
-            PixelIcon(kind: "book").frame(width: 27, height: 27)
+            ReaderMark().frame(width: 27, height: 27)
             Text(text).font(.system(size: 12, weight: .medium)).foregroundStyle(Ink.dark).lineLimit(3).frame(maxWidth: .infinity, alignment: .leading)
         }.padding(16).frame(width: 365, height: 76).background(Ink.paper, in: RoundedRectangle(cornerRadius: 10)))
         toast = panel; panel.orderFrontRegardless()
@@ -111,7 +111,9 @@ import Combine
     private static func statusImage() -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
             NSColor.black.setFill()
-            for (y, row) in PixelIcon.patterns["book"]!.enumerated() { for (x, p) in row.enumerated() where p == "1" { NSRect(x: CGFloat(x) + 3, y: 15 - CGFloat(y), width: 1, height: 1).fill() } }
+            for (index, width) in [9.0, 15.0, 11.0].enumerated() {
+                NSBezierPath(roundedRect: NSRect(x: 1.5, y: 12 - Double(index) * 5, width: width, height: 2.5), xRadius: 1.25, yRadius: 1.25).fill()
+            }
             return true
         }
         image.isTemplate = true

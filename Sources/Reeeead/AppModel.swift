@@ -2,14 +2,14 @@ import AppKit
 import SwiftUI
 import AVFoundation
 
-enum Page: String, CaseIterable { case home = "阅读空间", voice = "声音与语速", ruler = "阅读标尺", shortcuts = "快捷键与权限" }
+enum Page: String, CaseIterable { case home = "阅读", voice = "语音", ruler = "标尺", shortcuts = "快捷键" }
 
 @MainActor final class AppModel: ObservableObject {
     @Published var preferences = Preferences.load() { didSet { preferences.save() } }
     @Published var page: Page = .home
     @Published var permission = SelectionReader.permitted
     @Published var notice = ""
-    @Published var sample = "不必一次读完所有内容。\n把注意力放在眼前这一行，按照自己的节奏，慢慢向前。"
+    @Published var sample = "选中文字，按下快捷键，就能听到朗读。"
     @Published var recording: UInt32?
     let speech = SpeechEngine()
     let ruler = RulerController()
@@ -32,7 +32,7 @@ enum Page: String, CaseIterable { case home = "阅读空间", voice = "声音与
         hotKeys.unregisterAll()
         let read = hotKeys.register(preferences.readShortcut, id: 1)
         let ruler = hotKeys.register(preferences.rulerShortcut, id: 2)
-        if !read || !ruler { notice = "快捷键被其他应用占用，请在「快捷键与权限」中重新设置。" }
+        if !read || !ruler { notice = "快捷键被其他应用占用，请在「快捷键」中重新设置。" }
     }
     func beginRecording(_ id: UInt32) { hotKeys.unregisterAll(); recording = id; notice = "" }
     func acceptShortcut(_ shortcut: Shortcut, id: UInt32) -> String? {

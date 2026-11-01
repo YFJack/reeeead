@@ -50,7 +50,7 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
 @MainActor final class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
     enum State { case idle, loading, speaking, paused }
     @Published private(set) var state: State = .idle
-    @Published private(set) var message = "准备好了，按自己的节奏阅读。"
+    @Published private(set) var message = "就绪"
     private let synth = AVSpeechSynthesizer()
     private var player: AVAudioPlayer?
     private var task: Task<Void, Never>?
@@ -66,12 +66,12 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
         synth.stopSpeaking(at: .immediate)
         player?.stop(); player = nil
         state = .idle
-        message = "已停止。下一段，随时开始。"
+        message = "已停止"
     }
     func togglePause() {
         if state == .speaking {
             if player != nil { player?.pause() } else { synth.pauseSpeaking(at: .immediate) }
-            state = .paused; message = "已暂停，留一点时间。"
+            state = .paused; message = "已暂停"
         } else if state == .paused {
             if player != nil { player?.play() } else { synth.continueSpeaking() }
             state = .speaking; message = "正在朗读…"
@@ -154,13 +154,13 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor [weak self] in
             guard let self, self.activeUtterance === utterance else { return }
-            self.activeUtterance = nil; self.state = .idle; self.message = "这一段读完了。"
+            self.activeUtterance = nil; self.state = .idle; self.message = "朗读完成"
         }
     }
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor [weak self] in
             guard let self, self.player === player else { return }
-            self.player = nil; self.state = .idle; self.message = flag ? "这一段读完了。" : "音频播放中断，请重试。"
+            self.player = nil; self.state = .idle; self.message = flag ? "朗读完成" : "音频播放中断，请重试。"
         }
     }
     nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {

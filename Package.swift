@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "Luma",
+    name: "Reeeead",
     platforms: [.macOS(.v14)],
-    products: [.executable(name: "Luma", targets: ["Luma"])],
+    products: [.executable(name: "Reeeead", targets: ["Reeeead"])],
     targets: [
-        .executableTarget(name: "Luma", resources: [.process("Resources")]),
-        .testTarget(name: "LumaTests", dependencies: ["Luma"])
+        .executableTarget(name: "Reeeead"),
+        .testTarget(name: "ReeeeadTests", dependencies: ["Reeeead"])
     ]
 )

@@ -1,10 +1,10 @@
-# 一行 · Luma
+# Reeeead
 
-**一次一行，也在向前。**
+**一个安静、轻量的 macOS 阅读工具。**
 
 一个轻量、原生、开源的 macOS 阅读辅助工具。选中文字，让它读给你听；用两次点击框出阅读带，让视线更容易停留。
 
-![Luma 原生应用首页](docs/screenshot-home.png)
+![Reeeead 原生应用首页](docs/screenshot-home.png)
 
 ## 能做什么
 
@@ -14,33 +14,33 @@
 - **外部语音 API**：支持 OpenAI 兼容的语音合成协议，可配置完整地址、模型、音色与语速。API Key 保存在 macOS 钥匙串，按完整接口地址隔离。
 - **屏幕阅读标尺**：按 `⌃⌥L`，横线跟随鼠标；第一次点击固定上边界，向下移动，第二次点击固定下边界。区域之外变暗，中间保持原亮度。
 - **固定后照常操作**：阅读带停留在屏幕原位，鼠标点击和滚动穿透到原应用。再次按快捷键或 `Esc` 退出。
-- **克制的像素风**：暖纸色、像素图标、生成式像素插画；正文使用清晰的系统字体。
+- **轻量界面**：500 × 570 的小窗口、黑灰文字和暖白背景。主界面只保留朗读与标尺，其他选项收进设置。
 
 ## 快速开始
 
 需要 **macOS 14 或更新版本**。源码构建需要 **Xcode 15 / Swift 5.9 或更新版本**。无第三方包依赖。
 
 ```sh
-git clone https://github.com/YFJack/luma-reader.git
-cd luma-reader
+git clone https://github.com/YFJack/reeeead.git
+cd reeeead
 ./scripts/build.sh
-open dist/Luma.app
+open dist/Reeeead.app
 ```
 
-将 `dist/Luma.app` 拖到「应用程序」后再开启辅助功能权限，可以保持授权路径稳定。关闭窗口后应用继续驻留菜单栏；从菜单栏选择「退出 Luma」完全退出。
+将 `dist/Reeeead.app` 拖到「应用程序」后再开启辅助功能权限，可以保持授权路径稳定。关闭窗口后应用继续驻留菜单栏；从菜单栏选择「退出 Reeeead」完全退出。
 
 ### 第一次使用
 
-1. 在「阅读空间」试听一段文字，不需要辅助功能权限。
-2. 打开「快捷键与权限」→「打开系统设置」。在 macOS 的辅助功能权限列表中开启 **Luma**。
-3. 回到 Luma 点击「重新检查」。切到文本编辑器、浏览器或文档应用，选中文字后按 `⌃⌥R`。
+1. 在主界面试听一段文字，不需要辅助功能权限。
+2. 点击右上角设置 →「快捷键」→「开启」。在 macOS 的辅助功能权限列表中开启 **Reeeead**。
+3. 回到 Reeeead 点击「重新检查」。切到文本编辑器、浏览器或文档应用，选中文字后按 `⌃⌥R`。
 4. 按 `⌃⌥L` 开始设置阅读带。定位的两次点击不会传给底层应用；第二次松开鼠标后恢复普通点击与滚动。
 
 标尺只覆盖**启动时鼠标所在的显示器**。下边界不能越过上边界，最小高度为 8 点。屏幕配置改变或电脑休眠时自动收起。
 
 ### 外部语音服务
 
-「声音与语速」→「外部语音 API」。填写**完整的语音接口地址**，并保存此地址对应的 Key。
+设置 →「语音」→「外部 API」。填写**完整的语音接口地址**，并保存此地址对应的 Key。
 
 默认地址是 `https://api.openai.com/v1/audio/speech`，默认模型 `tts-1`、音色 `alloy`。这些只是可编辑的兼容配置，不包含服务账户或免费额度。其他厂商必须接受以下请求格式：
 
@@ -66,8 +66,8 @@ open dist/Luma.app
 
 ## 隐私与权限
 
-- 无遥测、无广告、无 Luma 账号、无项目自建后端。
-- 系统语音由 macOS 本机语音引擎处理。Luma 不将系统朗读文本发送到外部 API。
+- 无遥测、无广告、无 Reeeead 账号、无项目自建后端。
+- 系统语音由 macOS 本机语音引擎处理。Reeeead 不将系统朗读文本发送到外部 API。
 - 选择外部 API 后，**只有主动朗读的文字**会发送至所配置的服务；该服务自己的数据政策仍适用。
 - API Key 仅保存在钥匙串；语音设置和快捷键保存在本机 UserDefaults。试读区文字只保留在当前进程内。
 - 标尺通过透明窗口绘制，不截图、不录屏，不需要屏幕录制权限。
@@ -105,10 +105,10 @@ macOS 优先；尚不支持 Windows、OCR、图片/扫描件朗读、自动逐�
 
 ## Contributing / English
 
-Luma is a native macOS reading companion built with Swift, AppKit and SwiftUI. It reads selected text using system speech or a configurable OpenAI-compatible TTS endpoint, and provides a two-click, click-through screen reading band. Requires macOS 14+. No third-party runtime dependencies.
+Reeeead is a native macOS reading companion built with Swift, AppKit and SwiftUI. It reads selected text using system speech or a configurable OpenAI-compatible TTS endpoint, and provides a two-click, click-through screen reading band. Requires macOS 14+. No third-party runtime dependencies.
 
 Build with `./scripts/build.sh`; run `swift test -j 1`. Contributions that improve selection compatibility, accessibility and provider adapters are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE). The bundled landscape is AI-generated; its generation prompt and provenance are recorded in [docs/ASSETS.md](docs/ASSETS.md). UI icons and app icon are drawn deterministically from original pixel patterns. No third-party fonts or stock illustrations are bundled.
+[MIT](LICENSE). The app icon is an original geometric reading mark. UI symbols use the native system symbol library. No generated illustration, third-party font or stock asset is bundled. See [docs/ASSETS.md](docs/ASSETS.md).

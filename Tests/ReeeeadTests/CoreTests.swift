@@ -1,5 +1,5 @@
 import XCTest
-@testable import Luma
+@testable import Reeeead
 
 final class CoreTests: XCTestCase {
     func testRulerTwoClicksAndLockedPosition() {

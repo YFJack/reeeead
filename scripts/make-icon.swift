@@ -1,21 +1,16 @@
 import AppKit
-
-// Deterministic pixel mark, separate from the generated landscape illustration.
 let destination = CommandLine.arguments[1]
 try FileManager.default.createDirectory(atPath: destination, withIntermediateDirectories: true)
 for size in [16, 32, 64, 128, 256, 512, 1024] {
     let image = NSImage(size: NSSize(width: size, height: size))
     image.lockFocus()
-    let unit = CGFloat(size) / 32
-    NSColor(calibratedRed: 0.94, green: 0.93, blue: 0.87, alpha: 1).setFill()
-    NSBezierPath(roundedRect: NSRect(x: unit, y: unit, width: CGFloat(size) - 2 * unit, height: CGFloat(size) - 2 * unit), xRadius: 6 * unit, yRadius: 6 * unit).fill()
-    NSGraphicsContext.current?.shouldAntialias = false
-    let rows = ["0000000000000000", "0111110011111100", "1100011100000110", "1000001000000010", "1011101011110010", "1000001000000010", "1011101011110010", "1000001000000010", "1011101011000010", "1000001000000010", "1100011100000110", "0111110011111100", "0000000000000000"]
-    NSColor(calibratedRed: 0.14, green: 0.29, blue: 0.21, alpha: 1).setFill()
-    for (y, row) in rows.enumerated() { for (x, p) in row.enumerated() where p == "1" { NSRect(x: CGFloat(x + 8) * unit, y: CGFloat(22 - y) * unit, width: unit, height: unit).fill() } }
-    NSColor(calibratedRed: 0.76, green: 0.36, blue: 0.19, alpha: 1).setFill()
-    NSRect(x: 21 * unit, y: 20 * unit, width: 2 * unit, height: 6 * unit).fill()
-    NSRect(x: 8 * unit, y: 7 * unit, width: 16 * unit, height: unit).fill()
+    let scale = CGFloat(size) / 100
+    NSColor(calibratedRed: 0.97, green: 0.965, blue: 0.95, alpha: 1).setFill()
+    NSBezierPath(roundedRect: NSRect(x: 4 * scale, y: 4 * scale, width: 92 * scale, height: 92 * scale), xRadius: 22 * scale, yRadius: 22 * scale).fill()
+    NSColor(calibratedRed: 0.14, green: 0.14, blue: 0.13, alpha: 1).setFill()
+    for (index, width) in [34.0, 54.0, 42.0].enumerated() {
+        NSBezierPath(roundedRect: NSRect(x: 24 * scale, y: (64 - CGFloat(index) * 17) * scale, width: width * scale, height: 8 * scale), xRadius: 4 * scale, yRadius: 4 * scale).fill()
+    }
     image.unlockFocus()
     let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
     let data = rep.representation(using: .png, properties: [:])!

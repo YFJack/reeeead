@@ -8,11 +8,10 @@ if [[ "$CONFIG" != "release" && "$CONFIG" != "debug" ]]; then
 fi
 swift build -c "$CONFIG" -j 1
 BIN="$(swift build -c "$CONFIG" --show-bin-path)"
-APP="$PWD/dist/Luma.app"
+APP="$PWD/dist/Reeeead.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN/Luma" "$APP/Contents/MacOS/Luma"
-cp -R "$BIN/Luma_Luma.bundle" "$APP/Contents/Resources/"
+cp "$BIN/Reeeead" "$APP/Contents/MacOS/Reeeead"
 cp packaging/Info.plist "$APP/Contents/Info.plist"
-if [[ -f packaging/Luma.icns ]]; then cp packaging/Luma.icns "$APP/Contents/Resources/"; fi
+if [[ -f packaging/Reeeead.icns ]]; then cp packaging/Reeeead.icns "$APP/Contents/Resources/"; fi
 codesign --force --sign "${LUMA_SIGN_IDENTITY:--}" --identifier app.luma.reader "$APP"
 echo "Built: $APP"

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Luma
+@testable import Reeeead
 
 // Run scripts/mock-tts.py, then LUMA_LOCAL_API_TESTS=1 swift test -j 1.
 // These tests exercise real HTTP, audio decoding, cancellation and redirect handling.
@@ -18,7 +18,7 @@ final class IntegrationTests: XCTestCase {
         engine.togglePause(); XCTAssertEqual(engine.state, .speaking)
         try await Task.sleep(nanoseconds: 2_500_000_000)
         XCTAssertEqual(engine.state, .idle)
-        XCTAssertEqual(engine.message, "这一段读完了。")
+        XCTAssertEqual(engine.message, "朗读完成")
     }
     @MainActor func testCancelPreventsLatePlayback() async throws {
         try requireFixture()
