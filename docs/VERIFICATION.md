@@ -14,6 +14,14 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 - Both Macs received the same 0.3.1 app. The installer checked SHA-256 for every bundled file, architecture compatibility and code signature. Installed executable hashes matched on both hosts.
 - Both personal installations now use an existing Apple Development identity. The signing identity configuration remains local and ignored by Git. No private key or API key is copied by deployment.
 
+## Additional live acceptance on 0.3.1
+
+- Closed the main window while the ruler was active so the automation tool could target the actual full-screen overlay instead of the app's main window.
+- Clicked at screen-relative y=300, then y=520 on the 1920×1080 display. The first click entered boundary selection; the second produced a fixed clear band between the two green lines with dimming above and below. The placement hint disappeared after lock. See [locked overlay screenshot](screenshot-ruler-locked.png); the screenshot captures the transparent overlay alone, so its clear region appears white.
+- While the ruler remained locked, created a synthetic TextEdit document and scrolled it from bottom (scroll value 1) to top (0) using app-targeted automation. A subsequent overlay screenshot retained both boundaries at y=300 and y=520. This establishes stationary overlay geometry during another app's scroll; it does not independently prove physical mouse hit-testing through the overlay.
+- Restored the app to its reading page and closed the ruler. The synthetic document is saved under ignored `local/` for future acceptance.
+- The source build, tests and signature verification passed [GitHub Actions run 41323636760](https://github.com/YFJack/reeeead/actions/runs/41323636760) for code commit `1bf6b53`.
+
 ## Previous unchanged-engine checks
 
 - Ruler geometry tests cover two clicks, fixed bounds, upward movement, minimum band height and screen-edge clamping.
@@ -25,8 +33,8 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 ## Pending / not claimed
 
 - Physical side-button events have not yet been confirmed end-to-end with the user's mouse. Successful preset saving and pure routing tests are not hardware acceptance. Mouse software may remap side buttons into keyboard macros or consumer events.
-- The MacBook system Accessibility toggle is ON (confirmed by the user screenshot), while the app previously reported permission missing. This mismatch remains under diagnosis; old signing identity records are a possibility, not a proven cause. Version 0.3.1 writes the actual GUI process permission state to a local support report.
-- Real cross-app selected-text capture, global keyboard invocation, full-screen ruler positioning, locked-overlay scrolling/click-through and global Esc need complete live acceptance. The automation tool's app-targeted input cannot establish all global-event behavior.
+- The MacBook 0.3.1 GUI process now reports accessibilityTrusted=true and mouseTapReady=true at the installed path. This resolves the earlier app/system toggle mismatch for that running instance; the exact original cause is unproven. eventPostingAllowed remains false, so simulated-copy fallback still needs verification there. Physical ATK side-button recognition is awaiting the user's test.
+- Real cross-app selected-text capture, global keyboard invocation and physical input through the locked overlay need complete live acceptance. App-targeted automation does not prove physical event dispatch. An app-targeted Escape in TextEdit did not dismiss the ruler; physical Esc remains unverified, and this observation alone cannot separate input injection behavior from an app defect. The in-app “收起” action did close it.
 - Full-screen apps, Spaces and multiple displays require live verification.
 - A short non-sensitive real MiniMax request returned HTTP 200, provider status 0 and 36,852 bytes of valid MP3. The Mac mini native CLI stored the authorized credential in Keychain and read back keyPresent=true. MacBook remote Keychain write returned -25308 (interaction unavailable), so that host is not yet configured. The installed Mac mini GUI used MiniMax, transitioned to playback and then “朗读完成”; the native voice settings confirmed the intended provider/model/voice.
 - Developer ID signing, Apple notarization and a broadly distributed binary release are not completed. Development signing is not notarization.
