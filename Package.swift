@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [.executable(name: "Reeeead", targets: ["Reeeead"])],
     targets: [
-        .executableTarget(name: "Reeeead", resources: [.copy("Resources/Fonts"), .copy("Resources/Brand")]),
+        .executableTarget(name: "Reeeead", resources: [.copy("Resources/Fonts"), .copy("Resources/Brand"), .copy("Resources/Localization")]),
         .testTarget(name: "ReeeeadTests", dependencies: ["Reeeead"])
     ]
 )

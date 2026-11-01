@@ -2,14 +2,21 @@ import AppKit
 import SwiftUI
 import AVFoundation
 
-enum Page: String, CaseIterable { case home = "阅读", voice = "语音", ruler = "标尺", shortcuts = "快捷键" }
+enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
 
 @MainActor final class AppModel: ObservableObject {
     @Published var preferences = Preferences.load() { didSet { preferences.save() } }
+    @Published var language = Localization.language {
+        didSet {
+            let wasDefault = sample == Localization.text("选中文字，按下快捷键，就能听到朗读。", language: oldValue)
+            Localization.language = language
+            if wasDefault { sample = L("选中文字，按下快捷键，就能听到朗读。") }
+        }
+    }
     @Published var page: Page = .home
     @Published var permission = SelectionReader.permitted
     @Published var notice = ""
-    @Published var sample = "选中文字，按下快捷键，就能听到朗读。"
+    @Published var sample = L("选中文字，按下快捷键，就能听到朗读。")
     @Published var recording: UInt32?
     @Published var recordingError = ""
     @Published var mouseRecordingAvailable = false
@@ -49,7 +56,7 @@ enum Page: String, CaseIterable { case home = "阅读", voice = "语音", ruler 
     }
     func acceptShortcut(_ shortcut: Shortcut, id: UInt32) -> String? {
         let other = id == 1 ? preferences.rulerShortcut : preferences.readShortcut
-        if shortcut.conflicts(with: other) { return "两个功能不能使用同一组快捷键，请换一组。" }
+        if shortcut.conflicts(with: other) { return L("两个功能不能使用同一组快捷键，请换一组。") }
         guard hotKeys.register(shortcut, id: id) else { return hotKeys.registrationError }
         hotKeys.unregisterAll()
         if id == 1 { preferences.readShortcut = shortcut } else { preferences.rulerShortcut = shortcut }

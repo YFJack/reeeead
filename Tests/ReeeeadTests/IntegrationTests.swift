@@ -13,7 +13,7 @@ final class IntegrationTests: XCTestCase {
         XCTAssertEqual(engine.state, .speaking, engine.message)
         try await Task.sleep(nanoseconds: 2_500_000_000)
         XCTAssertEqual(engine.state, .idle)
-        XCTAssertEqual(engine.message, "朗读完成")
+        XCTAssertEqual(engine.message, L("朗读完成"))
         p.endpoint = "http://127.0.0.1:8642/minimax-error"
         engine.speak("error fixture", preferences: p)
         try await Task.sleep(nanoseconds: 500_000_000)
@@ -35,7 +35,7 @@ final class IntegrationTests: XCTestCase {
         engine.togglePause(); XCTAssertEqual(engine.state, .speaking)
         try await Task.sleep(nanoseconds: 2_500_000_000)
         XCTAssertEqual(engine.state, .idle)
-        XCTAssertEqual(engine.message, "朗读完成")
+        XCTAssertEqual(engine.message, L("朗读完成"))
     }
     @MainActor func testCancelPreventsLatePlayback() async throws {
         try requireFixture()
@@ -63,6 +63,6 @@ final class IntegrationTests: XCTestCase {
         engine.speak("redirect fixture", preferences: p)
         try await Task.sleep(nanoseconds: 500_000_000)
         XCTAssertEqual(engine.state, .idle)
-        XCTAssertTrue(engine.message.contains("重定向"), engine.message)
+        XCTAssertTrue(engine.message == L("接口发生重定向，已停止以保护密钥。请填写最终语音接口地址。"), engine.message)
     }
 }

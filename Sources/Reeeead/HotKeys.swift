@@ -33,7 +33,7 @@ final class HotKeyCenter {
         registrationError = ""
         if let button = shortcut.mouseButton {
             guard (3...31).contains(button), installMouseTap() else {
-                registrationError = "鼠标侧键需要辅助功能权限。开启后点「重新检查」。"
+                registrationError = L("鼠标侧键需要辅助功能权限。开启后点「重新检查」。")
                 return false
             }
             if let old = refs.removeValue(forKey: id) { UnregisterEventHotKey(old) }
@@ -43,7 +43,7 @@ final class HotKeyCenter {
         var ref: EventHotKeyRef?
         let result = RegisterEventHotKey(shortcut.keyCode, shortcut.modifiers, EventHotKeyID(signature: signature, id: id), GetApplicationEventTarget(), 0, &ref)
         guard result == noErr, let ref else {
-            registrationError = "快捷键被其他应用占用，请换一组。"
+            registrationError = L("快捷键被其他应用占用，请换一组。")
             return false
         }
         if let old = refs[id] { UnregisterEventHotKey(old) }

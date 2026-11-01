@@ -26,9 +26,9 @@
 
 ## External publication boundary
 
-X CLI `xurl` 1.3.4 is installed. X web login succeeded. The developer onboarding form is filled; acceptance of the binding developer agreement is awaiting explicit user confirmation. Developer app/OAuth setup remains incomplete. The text in `marketing/launch-copy.md` is a prepared draft, not evidence of a published post. Verify the authenticated account before sending it with the landscape film.
+X CLI `xurl` 1.3.4 is installed. X web login succeeded. The user explicitly accepted the developer agreement; onboarding has been submitted. Developer app/OAuth setup remains incomplete. The primary text in `marketing/launch-copy.md` was published through the authenticated website as @yfjack199017, with the landscape film and SRT captions. The post was opened again to verify text, the repository link and attached video: https://x.com/yfjack199017/status/2116936600819290403 . No duplicate CLI post is needed.
 
-This launch does not change the installed native app. Previously reported physical shortcut, mouse-side-button and external-display acceptance gaps remain in `VERIFICATION.md`.
+The bilingual update installs native app 0.4.0 on both configured Macs. Previously reported physical shortcut, mouse-side-button and external-display acceptance gaps remain in `VERIFICATION.md`.
 
 ## Repository and MacBook delivery
 
@@ -36,3 +36,12 @@ This launch does not change the installed native app. Previously reported physic
 - Repository About text, public website URL and relevant topics updated and read back.
 - Source preview release: https://github.com/YFJack/reeeead/releases/tag/v0.3.2 . Both MP4s, the SRT and cover were uploaded and verified in the release asset list.
 - The same four files were copied into the MacBook Downloads/Reeeead-launch folder; all SHA-256 hashes match the Mac mini. No application update was necessary.
+
+## English edition and bilingual app — 0.4.0
+
+- App interface, menus, permissions, shortcut recorder, ruler guidance and speech errors now support English and Simplified Chinese. Defaults to system language; manual choice is under Settings → Shortcuts → App language.
+- 31 tests passed, including local HTTP/audio integration and localization resource/format checks. Release build succeeded. Both configured Macs received the same bundle; file hashes and code signatures verified. Local live UI switched to English and the genuine screenshot is `docs/screenshot-home-en.png`. MacBook live UI acceptance remains separate from installation verification.
+- English film: 35.25 seconds, landscape 1280 × 720 and portrait 720 × 1280, H.264/AAC at 24 fps, English narration, on-screen copy and SRT/VTT captions. Both complete files decoded successfully; key frames reviewed. Voice generation succeeded; subjective voice-quality acceptance remains with the user.
+- English website uses the English film and screenshot; Chinese edition remains available separately. Updated public deployment succeeded. Website link/asset/metadata validation passed.
+- English MP4 and subtitle files copied to the MacBook Downloads/Reeeead-launch directory; SHA-256 verified against originals.
+- English X update is prepared with video and captions; publication verification follows separately.

@@ -27,7 +27,7 @@ final class RulerController: ObservableObject {
     func start(preferences: Preferences) {
         guard !active else { return }
         guard installEscapeTap() else {
-            onMessage?("标尺需要辅助功能权限，以便在任何应用中按 Esc 退出。请在「快捷键」页开启权限。")
+            onMessage?(L("标尺需要辅助功能权限，以便在任何应用中按 Esc 退出。请在「快捷键」页开启权限。"))
             return
         }
         let point = NSEvent.mouseLocation
@@ -49,13 +49,13 @@ final class RulerController: ObservableObject {
             if let canvas { panel?.invalidateCursorRects(for: canvas) }
             NSCursor.arrow.set()
             self?.locked = true
-            self?.onMessage?("阅读区域已固定。正常滚动文档，按 Esc 或标尺快捷键退出。")
+            self?.onMessage?(L("阅读区域已固定。正常滚动文档，按 Esc 或标尺快捷键退出。"))
         }
         panel.contentView = canvas
         self.panel = panel; self.canvas = canvas
         active = true; locked = false
         panel.orderFrontRegardless()
-        onMessage?("点击确定上边界，再向下移动，点击固定下边界。Esc 随时退出。")
+        onMessage?(L("点击确定上边界，再向下移动，点击固定下边界。Esc 随时退出。"))
     }
     func stop() {
         panel?.orderOut(nil)
@@ -66,7 +66,7 @@ final class RulerController: ObservableObject {
         let wasActive = active
         active = false; locked = false
         NSCursor.arrow.set()
-        if wasActive { onMessage?("标尺已收起。") }
+        if wasActive { onMessage?(L("标尺已收起。")) }
     }
     private func installEscapeTap() -> Bool {
         let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
@@ -159,7 +159,7 @@ final class RulerCanvas: NSView {
         drawLine(geometry.cursor)
         NSGraphicsContext.current?.shouldAntialias = true
         if geometry.phase != .locked {
-            let title = geometry.phase == .tracking ? "① 点击固定上边界   ·   Esc 退出" : "② 向下移动，点击固定下边界   ·   Esc 退出"
+            let title = geometry.phase == .tracking ? L("① 点击固定上边界   ·   Esc 退出") : L("② 向下移动，点击固定下边界   ·   Esc 退出")
             let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: NSColor.white]
             let size = (title as NSString).size(withAttributes: attrs)
             let y = geometry.cursor > bounds.height - 65 ? geometry.cursor - 48 : geometry.cursor + 20

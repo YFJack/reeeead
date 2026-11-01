@@ -19,6 +19,8 @@ jobs:
           test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Fonts/OpenDyslexic-Regular.otf
           test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Fonts/OFL.txt
           test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Brand/wordmark.png
+          test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Localization/en.lproj/Localizable.strings
+          test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Localization/zh-Hans.lproj/Localizable.strings
       - uses: actions/upload-artifact@v4
         with:
           name: Reeeead-macOS-unsigned-for-distribution

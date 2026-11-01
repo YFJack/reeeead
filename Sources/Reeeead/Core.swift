@@ -14,14 +14,14 @@ struct Shortcut: Codable, Equatable {
         if modifiers & UInt32(optionKey) != 0 { s += "⌥" }
         if modifiers & UInt32(shiftKey) != 0 { s += "⇧" }
         if modifiers & UInt32(cmdKey) != 0 { s += "⌘" }
-        return s + (mouseButton.map { "鼠标 \($0 + 1)" } ?? label)
+        return s + (mouseButton.map { L("鼠标 %@", String($0 + 1)) } ?? label)
     }
     func conflicts(with other: Shortcut) -> Bool {
         modifiers == other.modifiers && mouseButton == other.mouseButton && (mouseButton != nil || keyCode == other.keyCode)
     }
     static func mouse(button: Int, modifiers: UInt32 = 0) -> Shortcut? {
         guard (3...31).contains(button) else { return nil } // Preserve left, right and middle click.
-        return Shortcut(keyCode: 0, modifiers: modifiers, label: "鼠标 \(button + 1)", mouseButton: button)
+        return Shortcut(keyCode: 0, modifiers: modifiers, label: L("鼠标 %@", String(button + 1)), mouseButton: button)
     }
     static func modifiers(from flags: CGEventFlags) -> UInt32 {
         var result: UInt32 = 0
@@ -158,16 +158,16 @@ enum SpeechRequest {
               let host = url.host, !host.isEmpty, url.user == nil, url.password == nil,
               url.query == nil, url.fragment == nil,
               url.scheme == "https" || (url.scheme == "http" && ["localhost", "127.0.0.1", "[::1]", "::1"].contains(host)) else {
-            throw LumaError.message("请输入完整 HTTPS 语音接口地址；本机 localhost 可使用 HTTP。地址不能包含密码、查询参数或片段。")
+            throw LumaError.message(L("请输入完整 HTTPS 语音接口地址；本机 localhost 可使用 HTTP。地址不能包含密码、查询参数或片段。"))
         }
         return url
     }
     static func make(text: String, preferences: Preferences, key: String) throws -> URLRequest {
         let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty else { throw LumaError.message("先选中一段文字，再开始朗读。") }
-        guard content.count <= maximumCharacters else { throw LumaError.message("这段文字超过 4,000 字，请分段选择后朗读。") }
+        guard !content.isEmpty else { throw LumaError.message(L("先选中一段文字，再开始朗读。")) }
+        guard content.count <= maximumCharacters else { throw LumaError.message(L("这段文字超过 4,000 字，请分段选择后朗读。")) }
         guard !preferences.model.trimmingCharacters(in: .whitespaces).isEmpty,
-              !preferences.voice.trimmingCharacters(in: .whitespaces).isEmpty else { throw LumaError.message("请填写模型和音色。") }
+              !preferences.voice.trimmingCharacters(in: .whitespaces).isEmpty else { throw LumaError.message(L("请填写模型和音色。")) }
         var request = URLRequest(url: try validatedURL(preferences.endpoint))
         request.httpMethod = "POST"
         request.timeoutInterval = 45
@@ -195,22 +195,22 @@ enum SpeechResponse {
             let base_resp: Status
             let data: Audio?
         }
-        guard let response = try? JSONDecoder().decode(Payload.self, from: data) else { throw LumaError.message("MiniMax 返回了无法识别的响应。") }
+        guard let response = try? JSONDecoder().decode(Payload.self, from: data) else { throw LumaError.message(L("MiniMax 返回了无法识别的响应。")) }
         guard response.base_resp.status_code == 0 else {
             let code = response.base_resp.status_code
             // Never echo provider messages: custom endpoints may reflect credentials or text.
             let hint: String
             switch code {
-            case 1004, 2049: hint = "请检查 API Key 及其所属地区的接口地址。"
-            case 1008: hint = "账户余额不足，请检查 MiniMax 账户。"
-            case 1002: hint = "请求过于频繁，请稍后重试。"
-            default: hint = "请检查模型、音色和账户权限。"
+            case 1004, 2049: hint = L("请检查 API Key 及其所属地区的接口地址。")
+            case 1008: hint = L("账户余额不足，请检查 MiniMax 账户。")
+            case 1002: hint = L("请求过于频繁，请稍后重试。")
+            default: hint = L("请检查模型、音色和账户权限。")
             }
-            throw LumaError.message("MiniMax 错误 \(code)。\(hint)")
+            throw LumaError.message(L("MiniMax 错误 %@。%@", String(code), String(hint)))
         }
         guard let encoded = response.data?.audio, response.data?.status == 2,
               !encoded.isEmpty, encoded.utf8.count <= 48 * 1024 * 1024, encoded.utf8.count % 2 == 0 else {
-            throw LumaError.message("MiniMax 没有返回完整的音频，请缩短文字后重试。")
+            throw LumaError.message(L("MiniMax 没有返回完整的音频，请缩短文字后重试。"))
         }
         var audio = Data(capacity: encoded.utf8.count / 2)
         var high: UInt8?
@@ -220,7 +220,7 @@ enum SpeechResponse {
             case 48...57: value = c - 48
             case 65...70: value = c - 55
             case 97...102: value = c - 87
-            default: throw LumaError.message("MiniMax 音频编码无效。")
+            default: throw LumaError.message(L("MiniMax 音频编码无效。"))
             }
             if let h = high { audio.append(h << 4 | value); high = nil } else { high = value }
         }

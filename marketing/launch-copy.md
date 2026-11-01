@@ -34,4 +34,7 @@ https://github.com/YFJack/reeeead
 
 ## Publication state
 
-Prepared, not posted. Posting account must be verified after login. Do not imply the website is live until deployment returns success. Do not promise improved reading speed, clinical outcomes, universal app compatibility, or a notarized installer.
+Primary post published from @yfjack199017, with the landscape film and SRT captions, and opened again to verify text, repository link and video:
+https://x.com/yfjack199017/status/2116936600819290403
+
+The optional follow-up and Chinese variant remain drafts. Do not publish duplicates. Do not promise improved reading speed, clinical outcomes, universal app compatibility, or a notarized installer.

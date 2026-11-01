@@ -21,10 +21,10 @@ enum VoiceConfiguration {
         }
         do {
             let data = FileHandle.standardInput.readDataToEndOfFile()
-            guard data.count <= 16_384 else { throw LumaError.message("配置过大。") }
+            guard data.count <= 16_384 else { throw LumaError.message(L("配置过大。")) }
             let input = try JSONDecoder().decode(Configuration.self, from: data)
             guard ["api", "minimax"].contains(input.provider), !input.key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  !input.model.isEmpty, !input.voice.isEmpty else { throw LumaError.message("语音配置不完整。") }
+                  !input.model.isEmpty, !input.voice.isEmpty else { throw LumaError.message(L("语音配置不完整。")) }
             _ = try SpeechRequest.validatedURL(input.endpoint)
             try KeyStore.save(input.key.trimmingCharacters(in: .whitespacesAndNewlines), endpoint: input.endpoint)
             var preferences = Preferences.load()

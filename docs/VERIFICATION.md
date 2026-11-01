@@ -59,3 +59,12 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 5. Place a ruler over clickable content. Neither placement click should reach the underlying page. After lock, click/select/scroll the page; the band must remain fixed. Esc should close the ruler without closing a source-app dialog.
 6. Test keyboard/side-button toggling in every ruler state, screen edges, full-screen apps, another Space and a second display.
 7. Configure a real API locally and audition a non-sensitive sample; test invalid authentication and slow-response cancellation.
+
+
+## 0.4.0 bilingual interface
+
+- 31 XCTest cases passed with the local HTTP fixture enabled; no skips or failures.
+- Language tests cover Chinese/English system resolution, explicit override, packaged resource parity, interpolation count and English messages.
+- Live Mac mini UI: Chinese → English updates labels and menu names immediately; the default sample follows the language. Existing MiniMax provider, endpoint, voice and keyboard shortcuts remained visible. English screenshot captured from installed release.
+- Release 0.4.0 installed on both configured Macs with matching per-file hashes and verified signatures. MacBook live language switching has not been exercised remotely.
+- This update does not resolve the previously reported external-display/hardware acceptance gaps.

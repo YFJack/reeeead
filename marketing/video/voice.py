@@ -1,19 +1,20 @@
 """Generate narration. MINIMAX_API_KEY is read from the environment, never logged."""
-import json, os, pathlib, urllib.request
+import argparse, json, os, pathlib, urllib.request
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 OUT=ROOT/'local/launch-output/audio'
 class NoRedirect(urllib.request.HTTPRedirectHandler):
  def redirect_request(self,*args,**kwargs): return None
 def main():
+ parser=argparse.ArgumentParser();parser.add_argument('--language',choices=['en','zh'],default='zh');args=parser.parse_args()
  key=os.environ.get('MINIMAX_API_KEY')
  if not key: raise SystemExit('Set MINIMAX_API_KEY locally before generating narration.')
  OUT.mkdir(parents=True,exist_ok=True)
- scenes=json.loads((ROOT/'marketing/video/scenes.json').read_text())
- scenes += [{'id':'sample-en','voice':'A little less noise. A little more room to read. One line at a time.'}, {'id':'sample-zh','voice':'少一点干扰。多一点阅读的空间。一行一行，慢慢来。'}]
+ scenes=json.loads((ROOT/('marketing/video/scenes.en.json' if args.language=='en' else 'marketing/video/scenes.json')).read_text())
+ if args.language=='zh':scenes += [{'id':'sample-en','voice':'A little less noise. A little more room to read. One line at a time.'}, {'id':'sample-zh','voice':'少一点干扰。多一点阅读的空间。一行一行，慢慢来。'}]
  for scene in scenes:
-  target=OUT/(scene['id']+'.mp3')
+  target=OUT/(('en-' if args.language=='en' else '')+scene['id']+'.mp3')
   if target.exists(): continue
-  body={'model':'speech-2.8-hd','text':scene['voice'],'stream':False,'language_boost':'auto','output_format':'hex','voice_setting':{'voice_id':'presenter_male','speed':1.15,'vol':1,'pitch':0,'emotion':'calm'},'audio_setting':{'sample_rate':32000,'bitrate':128000,'format':'mp3','channel':1}}
+  body={'model':'speech-2.8-hd','text':scene['voice'],'stream':False,'language_boost':'English' if args.language=='en' else 'auto','output_format':'hex','voice_setting':{'voice_id':'English_Insightful_Speaker' if args.language=='en' else 'presenter_male','speed':1.1 if args.language=='en' else 1.15,'vol':1,'pitch':0,'emotion':'calm'},'audio_setting':{'sample_rate':32000,'bitrate':128000,'format':'mp3','channel':1}}
   request=urllib.request.Request('https://api.minimax.cn/v1/t2a_v2',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
   with urllib.request.build_opener(NoRedirect).open(request,timeout=60) as response: data=json.loads(response.read(4_000_000))
   status=data.get('base_resp',{}).get('status_code')

@@ -6,7 +6,7 @@
 
 Selected-text speech. A two-click reading band. A small, open-source Mac companion.
 
-[Website](https://reeeead.frosty-olive-3604.chatgpt.site) · [简体中文](README.zh-CN.md) · [Get started](#get-started) · [Contribute](CONTRIBUTING.md) · [Film & press kit](https://github.com/YFJack/reeeead/releases/tag/v0.3.2)
+[Website](https://reeeead.frosty-olive-3604.chatgpt.site) · [简体中文](README.zh-CN.md) · [Get started](#get-started) · [Contribute](CONTRIBUTING.md) · [Film & press kit](https://github.com/YFJack/reeeead/releases/tag/v0.4.0)
 
 [![macOS build and tests](https://github.com/YFJack/reeeead/actions/workflows/build.yml/badge.svg)](https://github.com/YFJack/reeeead/actions/workflows/build.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-747f68)
@@ -34,11 +34,11 @@ Selected-text speech. A two-click reading band. A small, open-source Mac compani
 - MIT-licensed app code
 
 </td><td>
-<img src="docs/screenshot-home.png" width="310" alt="Actual Reeeead application window. The current interface is Chinese.">
+<img src="docs/screenshot-home-en.png" width="310" alt="Actual Reeeead application window in English.">
 
 </td></tr></table>
 
-The current app interface is **Chinese**. The website and documentation are bilingual. English UI contributions are welcome.
+The app speaks **English and Simplified Chinese**. It follows your system language by default; switch instantly in **Settings → Shortcuts → App language**. Voice, API and shortcut settings stay intact.
 
 ## Get started
 
@@ -94,7 +94,7 @@ Reeeead is a reading aid, with no clinical benefit claims. Selection support var
 
 ## Help it get better
 
-Useful contributions include selection compatibility fixes, reproducible multi-monitor reports, mouse button testing, English UI localization, and voice-provider adapters. See [CONTRIBUTING.md](CONTRIBUTING.md) and [open an issue](https://github.com/YFJack/reeeead/issues/new/choose). Never include API keys or private document text.
+Useful contributions include selection compatibility fixes, reproducible multi-monitor reports, mouse button testing, localization refinements, and voice-provider adapters. See [CONTRIBUTING.md](CONTRIBUTING.md) and [open an issue](https://github.com/YFJack/reeeead/issues/new/choose). Never include API keys or private document text.
 
 ```sh
 swift test -j 1
@@ -107,6 +107,6 @@ If Reeeead makes your reading a little easier, a GitHub star helps other readers
 
 ## Built in the open
 
-The [website source](website), [film renderer and script](marketing/video), and [asset provenance](docs/ASSETS.md) live alongside the app. The 34-second launch film uses original animation, a real app screenshot, generated editorial illustration, and MiniMax narration. Feature animations are labeled as illustrations.
+The [website source](website), [film renderer and script](marketing/video), and [asset provenance](docs/ASSETS.md) live alongside the app. The 35-second English launch film (with a separate Chinese edition) uses original animation, a real app screenshot, generated editorial illustration, and MiniMax narration. Feature animations are labeled as illustrations.
 
 App code and geometric pixel mark: [MIT](LICENSE). Bundled Space Grotesk and retained OpenDyslexic fonts: [SIL OFL notices](Sources/Reeeead/Resources/Fonts). Generated artwork provenance and usage notes: [ASSETS](docs/ASSETS.md).

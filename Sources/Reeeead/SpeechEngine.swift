@@ -14,7 +14,7 @@ enum KeyStore {
         let status = SecItemCopyMatching(q as CFDictionary, &value)
         if status == errSecItemNotFound { return "" }
         guard status == errSecSuccess, let data = value as? Data, let key = String(data: data, encoding: .utf8) else {
-            throw LumaError.message("无法读取钥匙串（\(status)）。请解锁系统钥匙串后重试。")
+            throw LumaError.message(L("无法读取钥匙串（%@）。请解锁系统钥匙串后重试。", String(status)))
         }
         return key
     }
@@ -29,11 +29,11 @@ enum KeyStore {
             item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
             status = SecItemAdd(item as CFDictionary, nil)
         }
-        guard status == errSecSuccess else { throw LumaError.message("密钥保存失败（\(status)），尚未写入钥匙串。") }
+        guard status == errSecSuccess else { throw LumaError.message(L("密钥保存失败（%@），尚未写入钥匙串。", String(status))) }
     }
     static func delete(endpoint: String) throws {
         let status = SecItemDelete(query(endpoint) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else { throw LumaError.message("密钥删除失败（\(status)）。") }
+        guard status == errSecSuccess || status == errSecItemNotFound else { throw LumaError.message(L("密钥删除失败（%@）。", String(status))) }
     }
 }
 
@@ -50,7 +50,7 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
 @MainActor final class SpeechEngine: NSObject, ObservableObject, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
     enum State { case idle, loading, speaking, paused }
     @Published private(set) var state: State = .idle
-    @Published private(set) var message = "就绪"
+    @Published private(set) var message = L("就绪")
     private let synth = AVSpeechSynthesizer()
     private var player: AVAudioPlayer?
     private var task: Task<Void, Never>?
@@ -66,15 +66,15 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
         synth.stopSpeaking(at: .immediate)
         player?.stop(); player = nil
         state = .idle
-        message = "已停止"
+        message = L("已停止")
     }
     func togglePause() {
         if state == .speaking {
             if player != nil { player?.pause() } else { synth.pauseSpeaking(at: .immediate) }
-            state = .paused; message = "已暂停"
+            state = .paused; message = L("已暂停")
         } else if state == .paused {
             if player != nil { player?.play() } else { synth.continueSpeaking() }
-            state = .speaking; message = "正在朗读…"
+            state = .speaking; message = L("正在朗读…")
         }
     }
     func selection(preferences: Preferences) {
@@ -88,15 +88,15 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
         stop()
         let token = UUID(); generation = token
         state = .loading
-        message = preferences.provider == "system" ? "正在准备朗读…" : "正在请求语音服务…"
+        message = preferences.provider == "system" ? L("正在准备朗读…") : L("正在请求语音服务…")
         task = Task { [weak self] in
             guard let self else { return }
             do {
                 let content = try await text().trimmingCharacters(in: .whitespacesAndNewlines)
                 try Task.checkCancellation()
                 guard self.generation == token else { return }
-                guard !content.isEmpty else { throw LumaError.message("先选中或输入一段文字。") }
-                guard content.count <= SpeechRequest.maximumCharacters else { throw LumaError.message("文字超过 4,000 字，请分段朗读。") }
+                guard !content.isEmpty else { throw LumaError.message(L("先选中或输入一段文字。")) }
+                guard content.count <= SpeechRequest.maximumCharacters else { throw LumaError.message(L("文字超过 4,000 字，请分段朗读。")) }
                 if preferences.provider == "system" {
                     let utterance = AVSpeechUtterance(string: content)
                     if !preferences.systemVoice.isEmpty { utterance.voice = AVSpeechSynthesisVoice(identifier: preferences.systemVoice) }
@@ -106,7 +106,7 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
                     }
                     utterance.rate = min(AVSpeechUtteranceMaximumSpeechRate, max(AVSpeechUtteranceMinimumSpeechRate, AVSpeechUtteranceDefaultSpeechRate * Float(preferences.speed)))
                     self.activeUtterance = utterance
-                    self.state = .speaking; self.message = "正在朗读 · 系统语音"
+                    self.state = .speaking; self.message = L("正在朗读 · 系统语音")
                     self.synth.speak(utterance)
                 } else {
                     let key = try KeyStore.read(endpoint: preferences.endpoint)
@@ -123,51 +123,51 @@ final class AudioDownloadPolicy: NSObject, URLSessionDownloadDelegate {
                     defer { try? FileManager.default.removeItem(at: file) }
                     try Task.checkCancellation()
                     guard self.generation == token else { return }
-                    guard let http = response as? HTTPURLResponse else { throw LumaError.message("语音服务没有返回有效响应。") }
+                    guard let http = response as? HTTPURLResponse else { throw LumaError.message(L("语音服务没有返回有效响应。")) }
                     switch http.statusCode {
                     case 200..<300: break
-                    case 401, 403: throw LumaError.message("语音服务拒绝访问（\(http.statusCode)）。请检查该地址对应的 API Key 和账户权限。")
-                    case 429: throw LumaError.message("语音服务额度不足或请求过于频繁（429），请稍后重试。")
-                    case 300..<400: throw LumaError.message("接口发生重定向，已停止以保护密钥。请填写最终语音接口地址。")
-                    default: throw LumaError.message("语音服务返回 HTTP \(http.statusCode)。请检查地址、模型和音色是否兼容。")
+                    case 401, 403: throw LumaError.message(L("语音服务拒绝访问（%@）。请检查该地址对应的 API Key 和账户权限。", String(http.statusCode)))
+                    case 429: throw LumaError.message(L("语音服务额度不足或请求过于频繁（429），请稍后重试。"))
+                    case 300..<400: throw LumaError.message(L("接口发生重定向，已停止以保护密钥。请填写最终语音接口地址。"))
+                    default: throw LumaError.message(L("语音服务返回 HTTP %@。请检查地址、模型和音色是否兼容。", String(http.statusCode)))
                     }
                     let size = (try FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber)?.int64Value ?? 0
-                    guard size > 0, size <= AudioDownloadPolicy.maximumBytes else { throw LumaError.message("返回的音频为空或超过 24 MB，请缩短文字后重试。") }
+                    guard size > 0, size <= AudioDownloadPolicy.maximumBytes else { throw LumaError.message(L("返回的音频为空或超过 24 MB，请缩短文字后重试。")) }
                     let bytes = try SpeechResponse.audio(Data(contentsOf: file, options: .mappedIfSafe), provider: preferences.provider)
                     let audio = try AVAudioPlayer(data: bytes)
                     audio.delegate = self
                     audio.prepareToPlay()
                     self.player = audio
-                    guard audio.play() else { throw LumaError.message("音频无法播放，请检查服务是否返回 MP3 音频。") }
-                    self.state = .speaking; self.message = "正在朗读 · 外部语音"
+                    guard audio.play() else { throw LumaError.message(L("音频无法播放，请检查服务是否返回 MP3 音频。")) }
+                    self.state = .speaking; self.message = L("正在朗读 · 外部语音")
                 }
             } catch {
                 guard self.generation == token else { return }
                 self.state = .idle
                 self.player = nil
-                if error is CancellationError { self.message = "已取消。" }
-                else if let e = error as? URLError, e.code == .timedOut { self.message = "语音请求超时，请检查网络后重试。" }
-                else if let e = error as? URLError, e.code == .cancelled { self.message = "请求已取消，或音频超过大小限制。" }
-                else { self.message = (error as? LumaError)?.localizedDescription ?? "语音服务暂时不可用，请检查网络、接口设置和音频格式。" }
+                if error is CancellationError { self.message = L("已取消。") }
+                else if let e = error as? URLError, e.code == .timedOut { self.message = L("语音请求超时，请检查网络后重试。") }
+                else if let e = error as? URLError, e.code == .cancelled { self.message = L("请求已取消，或音频超过大小限制。") }
+                else { self.message = (error as? LumaError)?.localizedDescription ?? L("语音服务暂时不可用，请检查网络、接口设置和音频格式。") }
             }
         }
     }
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor [weak self] in
             guard let self, self.activeUtterance === utterance else { return }
-            self.activeUtterance = nil; self.state = .idle; self.message = "朗读完成"
+            self.activeUtterance = nil; self.state = .idle; self.message = L("朗读完成")
         }
     }
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor [weak self] in
             guard let self, self.player === player else { return }
-            self.player = nil; self.state = .idle; self.message = flag ? "朗读完成" : "音频播放中断，请重试。"
+            self.player = nil; self.state = .idle; self.message = flag ? L("朗读完成") : L("音频播放中断，请重试。")
         }
     }
     nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
         Task { @MainActor [weak self] in
             guard let self, self.player === player else { return }
-            self.player = nil; self.state = .idle; self.message = "音频格式无法解码，请检查接口。"
+            self.player = nil; self.state = .idle; self.message = L("音频格式无法解码，请检查接口。")
         }
     }
 }

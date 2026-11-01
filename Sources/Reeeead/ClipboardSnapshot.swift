@@ -20,10 +20,10 @@ import AppKit
                 for type in item.types {
                     try autoreleasepool {
                         guard let data = item.data(forType: type) else {
-                            throw LumaError.message("暂时无法完整保存剪贴板，未修改原内容。请稍后重试。")
+                            throw LumaError.message(L("暂时无法完整保存剪贴板，未修改原内容。请稍后重试。"))
                         }
                         guard data.count <= totalLimit - total else {
-                            throw LumaError.message("剪贴板内容超过 256 MB，已保留原内容。请先保存剪贴板内容，再复制要朗读的文字。")
+                            throw LumaError.message(L("剪贴板内容超过 256 MB，已保留原内容。请先保存剪贴板内容，再复制要朗读的文字。"))
                         }
                         total += data.count
                         if data.count <= memoryLimit - resident {
@@ -45,7 +45,7 @@ import AppKit
                 items.append(contents)
             }
             guard board.changeCount == changeCount else {
-                throw LumaError.message("剪贴板刚刚发生变化，请重新按朗读快捷键。")
+                throw LumaError.message(L("剪贴板刚刚发生变化，请重新按朗读快捷键。"))
             }
         } catch {
             if let directory { try? FileManager.default.removeItem(at: directory) }
@@ -65,7 +65,7 @@ import AppKit
                 case .file(let url): data = try Data(contentsOf: url, options: .mappedIfSafe)
                 }
                 guard item.setData(data, forType: type) else {
-                    throw LumaError.message("无法恢复剪贴板格式，请重试。")
+                    throw LumaError.message(L("无法恢复剪贴板格式，请重试。"))
                 }
             }
             return item
@@ -73,7 +73,7 @@ import AppKit
         guard board.changeCount == expected else { return false }
         board.clearContents()
         if !restored.isEmpty && !board.writeObjects(restored) {
-            throw LumaError.message("系统未能恢复剪贴板，请检查剪贴板管理工具。")
+            throw LumaError.message(L("系统未能恢复剪贴板，请检查剪贴板管理工具。"))
         }
         return true
     }

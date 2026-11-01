@@ -12,7 +12,7 @@ final class MouseShortcutTests: XCTestCase {
     func testSideButtonRoundTripAndConflicts() throws {
         let shortcut = try XCTUnwrap(Shortcut.mouse(button: 3, modifiers: UInt32(optionKey)))
         XCTAssertEqual(try JSONDecoder().decode(Shortcut.self, from: JSONEncoder().encode(shortcut)), shortcut)
-        XCTAssertEqual(shortcut.display, "⌥鼠标 4")
+        XCTAssertEqual(shortcut.display, "⌥" + L("鼠标 %@", "4"))
         XCTAssertTrue(shortcut.conflicts(with: shortcut))
         XCTAssertFalse(shortcut.conflicts(with: Shortcut.mouse(button: 4, modifiers: UInt32(optionKey))!))
         XCTAssertFalse(shortcut.conflicts(with: Shortcut.mouse(button: 3)!))

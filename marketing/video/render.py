@@ -35,10 +35,11 @@ def wrapdraw(d,xy,s,maxwidth,size,color=INK,cn=False,spacing=1.25):
  for line in wrapped(d,s,maxwidth,size,cn): text(d,(x,y),line,size,color,cn); y+=size*spacing
  return y
 
-def prepare_audio(scenes):
+def prepare_audio(scenes,language='zh'):
+ prefix='en-' if language=='en' else ''; suffix='-en' if language=='en' else ''
  chunks=[]; rate=32000; timeline=[]; now=0
  for scene in scenes:
-  mp3=OUT/'audio'/(scene['id']+'.mp3'); wav=OUT/'audio'/(scene['id']+'.wav')
+  mp3=OUT/'audio'/(prefix+scene['id']+'.mp3'); wav=OUT/'audio'/(prefix+scene['id']+'.wav')
   subprocess.run([FF,'-y','-loglevel','error','-i',str(mp3),'-ar',str(rate),'-ac','1','-c:a','pcm_s16le',str(wav)],check=True)
   with wave.open(str(wav),'rb') as f: raw=f.readframes(f.getnframes())
   length=len(raw)/2/rate
@@ -46,20 +47,21 @@ def prepare_audio(scenes):
   lead=int(.3*rate); tail=round(duration*rate)-lead-len(raw)//2
   chunks.append(b'\0\0'*lead+raw+b'\0\0'*max(0,tail))
   scene.update(start=now,duration=duration,spoken=length); timeline.append(scene); now+=duration
- with wave.open(str(OUT/'narration.wav'),'wb') as f:
+ with wave.open(str(OUT/f'narration{suffix}.wav'),'wb') as f:
   f.setnchannels(1); f.setsampwidth(2); f.setframerate(rate)
   for chunk in chunks:f.writeframes(chunk)
- (OUT/'timing.json').write_text(json.dumps(timeline,ensure_ascii=False,indent=2))
+ (OUT/f'timing{suffix}.json').write_text(json.dumps(timeline,ensure_ascii=False,indent=2))
  # Text-only captions stay useful for muted playback and accessibility.
  def stamp(t,sep=','):
   ms=round(t*1000); return f'{ms//3600000:02}:{ms//60000%60:02}:{ms//1000%60:02}{sep}{ms%1000:03}'
  srt=[];vtt=['WEBVTT\n']
  for i,s in enumerate(timeline):
   start=s['start']+.3;end=start+s['spoken']
-  srt.append(f"{i+1}\n{stamp(start)} --> {stamp(end)}\n{s['voice']}\n{s['en']}\n")
-  vtt.append(f"{stamp(start,'.')} --> {stamp(end,'.')}\n{s['voice']}\n{s['en']}\n")
- (OUT/'reeeead-launch.srt').write_text('\n'.join(srt))
- (OUT/'reeeead-launch.vtt').write_text('\n'.join(vtt))
+  caption=s['voice'] if language=='en' else s['voice']+'\n'+s['en']
+  srt.append(f"{i+1}\n{stamp(start)} --> {stamp(end)}\n{caption}\n")
+  vtt.append(f"{stamp(start,'.')} --> {stamp(end,'.')}\n{caption}\n")
+ (OUT/f'reeeead-launch{suffix}.srt').write_text('\n'.join(srt))
+ (OUT/f'reeeead-launch{suffix}.vtt').write_text('\n'.join(vtt))
  return timeline,now
 
 ART=Image.open(ROOT/'marketing/assets/reading-again.png').convert('RGB')

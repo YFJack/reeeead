@@ -31,21 +31,21 @@ enum SelectionReader {
         return nil
     }
     @MainActor static func read(useCopyFallback: Bool) async throws -> String {
-        guard permitted else { throw LumaError.message("还差一步：在「快捷键」页开启辅助功能权限，才能读取其他应用中的选中文字。") }
+        guard permitted else { throw LumaError.message(L("还差一步：在「快捷键」页开启辅助功能权限，才能读取其他应用中的选中文字。")) }
         guard let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            throw LumaError.message("请先切换到要阅读的应用、选中文字，再按朗读快捷键。")
+            throw LumaError.message(L("请先切换到要阅读的应用、选中文字，再按朗读快捷键。"))
         }
         let pid = app.processIdentifier
         if let text = accessibleText(pid: pid) { return text }
-        guard useCopyFallback else { throw LumaError.message("此应用没有提供选中文字。可以在「快捷键」页开启复制兼容模式。") }
+        guard useCopyFallback else { throw LumaError.message(L("此应用没有提供选中文字。可以在「快捷键」页开启复制兼容模式。")) }
         try Task.checkCancellation()
-        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { throw LumaError.message("前台应用已切换，请重新选择文字。") }
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { throw LumaError.message(L("前台应用已切换，请重新选择文字。")) }
         let board = NSPasteboard.general
         let backup = try ClipboardSnapshot(board)
         let originalChange = backup.changeCount
         try Task.checkCancellation()
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else {
-            throw LumaError.message("前台应用已切换，请重新选择文字。")
+            throw LumaError.message(L("前台应用已切换，请重新选择文字。"))
         }
         let source = CGEventSource(stateID: .combinedSessionState)
         let down = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: true)
@@ -67,12 +67,12 @@ enum SelectionReader {
                 // Restore only if no subsequent writer has touched the clipboard.
                 if sameApp { try backup.restore(to: board, ifUnchangedSince: copiedChange) }
                 try Task.checkCancellation()
-                guard sameApp else { throw LumaError.message("前台应用已切换，已取消本次朗读。") }
+                guard sameApp else { throw LumaError.message(L("前台应用已切换，已取消本次朗读。")) }
                 if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return text }
                 break
             }
         }
         try Task.checkCancellation()
-        throw LumaError.message("没有读到选中文字。请确认已选中可复制的文字；图片和扫描件暂不支持。")
+        throw LumaError.message(L("没有读到选中文字。请确认已选中可复制的文字；图片和扫描件暂不支持。"))
     }
 }
