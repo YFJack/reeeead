@@ -68,3 +68,14 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 - Live Mac mini UI: Chinese → English updates labels and menu names immediately; the default sample follows the language. Existing MiniMax provider, endpoint, voice and keyboard shortcuts remained visible. English screenshot captured from installed release.
 - Release 0.4.0 installed on both configured Macs with matching per-file hashes and verified signatures. MacBook live language switching has not been exercised remotely.
 - This update does not resolve the previously reported external-display/hardware acceptance gaps.
+
+
+## 0.4.1 shortcut recording fix
+
+- Replaced first-responder-dependent keyboard capture and separate global mouse recording with one sheet-scoped local event monitor. The sheet can record while a SwiftUI control has focus. Both input paths commit on release; dismissal removes the monitor, and losing key-window status clears pending input.
+- Expanded keyboard mapping to function keys, arrows, navigation keys, numeric keypad and printable keys, including unmodified keys. Mouse recording supports middle/additional buttons and modified primary/secondary clicks. Plain left/right clicks still operate controls.
+- 39 XCTest cases passed with the local HTTP fixture enabled, no failures or skips. Added regressions for previously rejected keys, local NSEvent mouse capture, modifier release before button release, repeated key events, Escape, teardown and legacy preferences. Synthetic events were constructed in tests, not posted to other applications.
+- Mac mini native UI automation saved Control-Option-Up and F6, verified Escape cancellation, rejected duplicate Control-Option-L, then successfully saved Control-Option-R again. A CUA middle-click request arrived as Command + Mouse 1; that combination saved successfully. This verifies the local mouse recording path, not a physical middle click. Original Control-Option-R was restored after testing.
+- Built 0.4.1 (8) with `-j 1`; deployed through `scripts/deploy.py` to both configured Macs. Per-file hashes and code signatures verified; installed executable SHA-256 on both: `3565ef0331a9b661e1e62bca750016ca1845f1bc3852d91a2eb8b266d0826b51`.
+- MacBook was relaunched. Its new 0.4.1 GUI process reported Accessibility trusted, event posting allowed and mouse tap ready at the installed path. Before the fix, its 0.4.0 report also showed all three true; this session found no missing permission to explain the recording issue.
+- Physical ATK button recording, global invocation from another app and MacBook visual interaction remain pending user/hardware acceptance. Local UI automation and deployment do not establish those results.

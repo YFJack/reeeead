@@ -32,19 +32,8 @@ struct MainView: View {
         .sheet(isPresented: Binding(get: { model.recording != nil }, set: { if !$0 { model.recording = nil } }), onDismiss: { model.registerShortcuts(); model.recordingError = "" }) {
             VStack(spacing: 18) {
                 Text(L("设置快捷键")).font(.system(size: 20, weight: .semibold))
-                Text(L("按下鼠标侧键，或使用键盘组合键。")).font(.system(size: 12)).foregroundStyle(Ink.muted)
-                Text(model.mouseRecordingAvailable ? L("侧键可搭配 ⌘ ⌥ ⌃ ⇧，松开即可保存。") : L("侧键需先开启辅助功能权限。键盘请搭配 ⌘、⌥ 或 ⌃。")).font(.system(size: 11)).foregroundStyle(Ink.muted).multilineTextAlignment(.center)
+                Text(L("按下想用的快捷键，松开即可保存。")).font(.system(size: 12)).foregroundStyle(Ink.muted)
                 KeyCap(text: L("等待按键…"))
-                if model.mouseRecordingAvailable {
-                    HStack(spacing: 12) {
-                        ForEach(3...4, id: \.self) { button in
-                            Button(L("侧键 %@ · 鼠标 %@", String(button - 2), String(button + 1))) {
-                                guard let id = model.recording, let shortcut = Shortcut.mouse(button: button) else { return }
-                                model.recordingError = model.acceptShortcut(shortcut, id: id) ?? ""
-                            }.buttonStyle(ReaderButtonStyle())
-                        }
-                    }
-                }
                 if !model.recordingError.isEmpty { Text(model.recordingError).font(.system(size: 12)).foregroundStyle(.orange) }
                 ShortcutCapture(onShortcut: { shortcut in
                     guard let id = model.recording else { return }
@@ -187,6 +176,7 @@ struct ShortcutCapture: NSViewRepresentable {
     let onCancel: () -> Void
     func makeNSView(context: Context) -> ShortcutRecorderView { let v = ShortcutRecorderView(); v.onShortcut = onShortcut; v.onCancel = onCancel; return v }
     func updateNSView(_ nsView: ShortcutRecorderView, context: Context) { nsView.onShortcut = onShortcut; nsView.onCancel = onCancel }
+    static func dismantleNSView(_ nsView: ShortcutRecorderView, coordinator: ()) { nsView.stopMonitoring() }
 }
 struct RulerPreview: View {
     let opacity: Double

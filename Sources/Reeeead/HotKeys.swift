@@ -6,10 +6,9 @@ final class HotKeyCenter {
     private var handler: EventHandlerRef?
     private var mouseBindings: [UInt32: Shortcut] = [:]
     private var mouseTap: CFMachPort?
-    var mouseTapReady: Bool { mouseTap != nil }
+    var mouseTapReady: Bool { mouseTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false }
     private var mouseSource: CFRunLoopSource?
     private var mouseRouter = MouseShortcutRouter()
-    private var onCapture: ((Shortcut) -> Void)?
     private var generation = UUID()
     private(set) var registrationError = ""
     var onRead: (() -> Void)?
@@ -32,8 +31,8 @@ final class HotKeyCenter {
     func register(_ shortcut: Shortcut, id: UInt32) -> Bool {
         registrationError = ""
         if let button = shortcut.mouseButton {
-            guard (3...31).contains(button), installMouseTap() else {
-                registrationError = L("鼠标侧键需要辅助功能权限。开启后点「重新检查」。")
+            guard Shortcut.mouse(button: button, modifiers: shortcut.modifiers) != nil, installMouseTap() else {
+                registrationError = L("鼠标快捷键需要辅助功能权限。开启后点「重新检查」。")
                 return false
             }
             if let old = refs.removeValue(forKey: id) { UnregisterEventHotKey(old) }
@@ -51,13 +50,14 @@ final class HotKeyCenter {
         mouseBindings.removeValue(forKey: id)
         return true
     }
-    func beginMouseRecording(_ capture: @escaping (Shortcut) -> Void) -> Bool {
-        onCapture = capture
-        return installMouseTap()
-    }
     private func installMouseTap() -> Bool {
-        if mouseTap != nil { return true }
-        let mask = [CGEventType.otherMouseDown, .otherMouseUp, .otherMouseDragged].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
+        if let mouseTap {
+            CGEvent.tapEnable(tap: mouseTap, enable: true)
+            return mouseTapReady
+        }
+        let mask = [CGEventType.leftMouseDown, .leftMouseUp, .leftMouseDragged,
+                    .rightMouseDown, .rightMouseUp, .rightMouseDragged,
+                    .otherMouseDown, .otherMouseUp, .otherMouseDragged].reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
         mouseTap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, info in
             guard let info else { return Unmanaged.passUnretained(event) }
             let center = Unmanaged<HotKeyCenter>.fromOpaque(info).takeUnretainedValue()
@@ -67,18 +67,17 @@ final class HotKeyCenter {
             }
             let phase: MouseShortcutRouter.Phase
             switch type {
-            case .otherMouseDown: phase = .down
-            case .otherMouseUp: phase = .up
-            case .otherMouseDragged: phase = .drag
+            case .leftMouseDown, .rightMouseDown, .otherMouseDown: phase = .down
+            case .leftMouseUp, .rightMouseUp, .otherMouseUp: phase = .up
+            case .leftMouseDragged, .rightMouseDragged, .otherMouseDragged: phase = .drag
             default: return Unmanaged.passUnretained(event)
             }
-            let decision = center.mouseRouter.route(button: Int(event.getIntegerValueField(.mouseEventButtonNumber)), modifiers: Shortcut.modifiers(from: event.flags), phase: phase, bindings: center.mouseBindings, recording: center.onCapture != nil)
-            if decision.action != nil || decision.captured != nil {
+            let decision = center.mouseRouter.route(button: Int(event.getIntegerValueField(.mouseEventButtonNumber)), modifiers: Shortcut.modifiers(from: event.flags), phase: phase, bindings: center.mouseBindings, recording: false)
+            if decision.action != nil {
                 let generation = center.generation
                 DispatchQueue.main.async { [weak center] in
                     guard let center, center.generation == generation else { return }
-                    if let shortcut = decision.captured { center.onCapture?(shortcut) }
-                    else if decision.action == 1 { center.onRead?() }
+                    if decision.action == 1 { center.onRead?() }
                     else if decision.action == 2 { center.onRuler?() }
                 }
             }
@@ -95,7 +94,6 @@ final class HotKeyCenter {
         refs.values.forEach { UnregisterEventHotKey($0) }
         refs.removeAll()
         mouseBindings.removeAll()
-        onCapture = nil
         mouseRouter = MouseShortcutRouter()
         if let mouseTap { CGEvent.tapEnable(tap: mouseTap, enable: false); CFMachPortInvalidate(mouseTap) }
         if let mouseSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), mouseSource, .commonModes) }
@@ -110,14 +108,65 @@ final class HotKeyCenter {
 final class ShortcutRecorderView: NSView {
     var onShortcut: ((Shortcut) -> Void)?
     var onCancel: (() -> Void)?
-    override var acceptsFirstResponder: Bool { true }
-    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); window?.makeFirstResponder(self) }
-    override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { onCancel?(); return }
-        if let shortcut = Shortcut.from(event) { onShortcut?(shortcut) } else { NSSound.beep() }
+    private var monitor: Any?
+    private var resignObserver: NSObjectProtocol?
+    private var pending: Shortcut?
+    private var mouseRouter = MouseShortcutRouter()
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        stopMonitoring()
+        guard let window else { return }
+        resignObserver = NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: window, queue: .main) { [weak self] _ in
+            self?.pending = nil
+            self?.mouseRouter = MouseShortcutRouter()
+        }
+        // Monitor the sheet before responder/menu dispatch. SwiftUI may focus its
+        // Cancel button after presentation or a click; recording still works.
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp,
+            .leftMouseDown, .leftMouseUp, .leftMouseDragged,
+            .rightMouseDown, .rightMouseUp, .rightMouseDragged,
+            .otherMouseDown, .otherMouseUp, .otherMouseDragged]) { [weak self] event in
+            guard let self, let window = self.window, window.isKeyWindow,
+                  event.window == nil || event.window === window else { return event }
+            return self.capture(event)
+        }
     }
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if let shortcut = Shortcut.from(event) { onShortcut?(shortcut); return true }
-        return super.performKeyEquivalent(with: event)
+    // Save on release, before registering the new global shortcut. This avoids
+    // autorepeat firing the action while the same key is still held down.
+    func capture(_ event: NSEvent) -> NSEvent? {
+        let phase: MouseShortcutRouter.Phase?
+        switch event.type {
+        case .leftMouseDown, .rightMouseDown, .otherMouseDown: phase = .down
+        case .leftMouseUp, .rightMouseUp, .otherMouseUp: phase = .up
+        case .leftMouseDragged, .rightMouseDragged, .otherMouseDragged: phase = .drag
+        default: phase = nil
+        }
+        if let phase {
+            let modifiers = Shortcut.modifiers(from: CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue)))
+            let decision = mouseRouter.route(button: event.buttonNumber, modifiers: modifiers, phase: phase, bindings: [:], recording: true)
+            if let shortcut = decision.captured { onShortcut?(shortcut) }
+            return decision.consume ? nil : event
+        }
+        if event.type == .keyDown {
+            guard !event.isARepeat else { return nil }
+            pending = Shortcut.from(event)
+            return nil
+        }
+        guard event.type == .keyUp, let shortcut = pending,
+              shortcut.keyCode == UInt32(event.keyCode) else { return nil }
+        pending = nil
+        if shortcut.keyCode == 53 && shortcut.modifiers == 0 { onCancel?() }
+        else { onShortcut?(shortcut) }
+        return nil
     }
+    func stopMonitoring() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
+        monitor = nil
+        resignObserver = nil
+        pending = nil
+        mouseRouter = MouseShortcutRouter()
+    }
+    deinit { stopMonitoring() }
 }

@@ -42,14 +42,17 @@ The app is outside the App Sandbox because it integrates with other applications
 
 The build script accepts `REEEEAD_SIGN_IDENTITY` (legacy `LUMA_SIGN_IDENTITY` also works), or an ignored `local/signing-identity.txt`; without one it uses ad-hoc signing. Personal installs currently use an existing Apple Development identity. For public releases, validate TCC persistence across updates and add Developer ID signing and notarization.
 
-## Mouse shortcut invariants
+## Shortcut recording and dispatch
 
-- Only `otherMouseDown`, `otherMouseUp`, and `otherMouseDragged` enter the side-button tap. Left, right and middle buttons are never accepted as shortcuts.
-- Native zero-based button numbers 3...31 are displayed to the user as Mouse 4...32. Modifier matching ignores Caps Lock and Fn.
+- Keyboard and mouse recording use a sheet-scoped local event monitor before responder/menu dispatch, so focus moving to a SwiftUI button does not break recording. It commits on key release, removes its monitor on dismissal and clears pending input when the sheet loses focus. Plain Escape cancels; modified Escape can be assigned.
+- Keyboard bindings use Carbon global hotkey registration. Letters, function/navigation keys, arrows and numeric keypad keys can be used with or without modifiers. System-reserved combinations can fail registration.
+- The mouse tap observes down/up/drag events for all mouse buttons. Middle/additional buttons are accepted directly; primary/secondary buttons require modifiers so ordinary clicking remains available. Recording only captures while the app and its sheet are active.
+- Native zero-based button numbers 0...31 are displayed to the user as Mouse 1...32. Modifier matching ignores Caps Lock and Fn.
 - A matched press is remembered until release, even if modifiers change. The complete matched pair and its drags are consumed. Unmatched presses pass through.
 - Actions and recorder callbacks are dispatched after release. A generation token discards callbacks queued before reconfiguration.
-- The mouse tap exists only when a side-button binding or recording session needs it. No mouse movement, text or click history is stored.
+- The global mouse tap exists only when a saved mouse binding needs it; recording uses the local monitor. No mouse movement, text or click history is stored.
 - The optional `mouseButton` field preserves decoding of existing keyboard preferences.
+- Local keyboard capture follows [Apple’s event monitor documentation](https://developer.apple.com/documentation/appkit/nsevent/addlocalmonitorforevents(matching:handler:)).
 - Event types follow [Apple's Quartz documentation](https://developer.apple.com/documentation/coregraphics/cgeventtype).
 
 ## Naming compatibility

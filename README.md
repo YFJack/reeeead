@@ -20,7 +20,7 @@ Selected-text speech. A two-click reading band. A small, open-source Mac compani
 
 ## Two things, done quietly
 
-**Select it. Hear it.** Select text in a supported Mac app and press `⌃⌥R`. Use macOS voices, MiniMax, or your own OpenAI-compatible speech endpoint. Set the speed, pause, resume, or stop. Bind a keyboard shortcut or a mouse side button.
+**Select it. Hear it.** Select text in a supported Mac app and press `⌃⌥R`. Use macOS voices, MiniMax, or your own OpenAI-compatible speech endpoint. Set the speed, pause, resume, or stop. Choose your own keyboard or mouse shortcut.
 
 **One line. A little breathing room.** Press `⌃⌥L`. Click to set the top edge, then click to set the bottom. Everything outside your reading band dims. The band stays in place while you scroll and click through to the original app. Press the shortcut again or `Esc` to close.
 
@@ -73,7 +73,7 @@ MiniMax defaults: `https://api.minimax.cn/v1/t2a_v2`, model `speech-2.8-hd`, voi
 
 ### Mouse buttons and displays
 
-Record a side button in Settings → Shortcuts, or choose Mouse 4 / Mouse 5. Modifier keys are supported. If a driver turns a side button into a keyboard macro, record that keyboard shortcut or restore ordinary button behavior in the driver.
+Open Settings → Shortcuts and press the shortcut you want; release to save. Letters, function keys, arrows, navigation keys, the number pad, middle and additional mouse buttons are supported. Left/right mouse buttons can be combined with modifiers; plain left/right clicks remain available for normal interaction. Escape cancels recording. If a driver turns a side button into a keyboard macro, record that keyboard shortcut or restore ordinary button behavior in the driver.
 
 The ruler starts on the **display containing the pointer**. It does not follow the pointer to a second display after activation. Display changes and sleep close it. External-display, physical-keyboard and mouse-hardware acceptance testing is still in progress; see the [verification record](docs/VERIFICATION.md).
 

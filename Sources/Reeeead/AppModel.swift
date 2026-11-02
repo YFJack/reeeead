@@ -19,7 +19,6 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
     @Published var sample = L("选中文字，按下快捷键，就能听到朗读。")
     @Published var recording: UInt32?
     @Published var recordingError = ""
-    @Published var mouseRecordingAvailable = false
     let speech = SpeechEngine()
     let ruler = RulerController()
     let hotKeys = HotKeyCenter()
@@ -48,10 +47,6 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
     func beginRecording(_ id: UInt32) {
         ruler.stop()
         hotKeys.unregisterAll(); recording = id; notice = ""; recordingError = ""
-        mouseRecordingAvailable = hotKeys.beginMouseRecording { [weak self] shortcut in
-            guard let self, let id = self.recording else { return }
-            self.recordingError = self.acceptShortcut(shortcut, id: id) ?? ""
-        }
         PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady)
     }
     func acceptShortcut(_ shortcut: Shortcut, id: UInt32) -> String? {

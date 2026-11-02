@@ -53,7 +53,7 @@ final class MouseShortcutTests: XCTestCase {
         XCTAssertTrue(up.consume)
         XCTAssertEqual(up.captured, .mouse(button: 3, modifiers: UInt32(shiftKey)))
         XCTAssertNil(up.action)
-        XCTAssertFalse(router.route(button: 2, modifiers: 0, phase: .down, bindings: [:], recording: true).consume)
+        XCTAssertFalse(router.route(button: 0, modifiers: 0, phase: .down, bindings: [:], recording: true).consume)
     }
     func testTwoButtonsMaintainIndependentPressState() {
         var router = MouseShortcutRouter()
@@ -66,5 +66,34 @@ final class MouseShortcutTests: XCTestCase {
     func testModifierConversionIgnoresCapsLockAndFunction() {
         XCTAssertEqual(Shortcut.modifiers(from: [.maskAlphaShift, .maskSecondaryFn]), 0)
         XCTAssertEqual(Shortcut.modifiers(from: [.maskCommand, .maskAlternate, .maskControl, .maskShift, .maskAlphaShift]), UInt32(cmdKey | optionKey | controlKey | shiftKey))
+    }
+    func testMiddleAndAdditionalButtonsCanBeRecorded() throws {
+        for button in [2, 3, 4, 5, 10, 31] {
+            var router = MouseShortcutRouter()
+            XCTAssertTrue(router.route(button: button, modifiers: 0, phase: .down, bindings: [:], recording: true).consume)
+            let captured = try XCTUnwrap(router.route(button: button, modifiers: 0, phase: .up, bindings: [:], recording: true).captured)
+            XCTAssertEqual(captured.mouseButton, button)
+            XCTAssertEqual(try JSONDecoder().decode(Shortcut.self, from: JSONEncoder().encode(captured)), captured)
+        }
+    }
+    func testModifiedPrimaryClicksKeepReleaseAfterModifierIsReleased() {
+        for button in [0, 1] {
+            var router = MouseShortcutRouter()
+            let shortcut = Shortcut.mouse(button: button, modifiers: UInt32(controlKey))!
+            XCTAssertTrue(router.route(button: button, modifiers: UInt32(controlKey), phase: .down, bindings: [1: shortcut], recording: false).consume)
+            XCTAssertTrue(router.route(button: button, modifiers: 0, phase: .drag, bindings: [:], recording: false).consume)
+            let release = router.route(button: button, modifiers: 0, phase: .up, bindings: [:], recording: false)
+            XCTAssertTrue(release.consume)
+            XCTAssertEqual(release.action, 1)
+            XCTAssertFalse(router.route(button: button, modifiers: 0, phase: .down, bindings: [1: shortcut], recording: false).consume)
+        }
+    }
+    func testLosingRecordingFocusDoesNotSaveOrFireAction() {
+        var router = MouseShortcutRouter()
+        _ = router.route(button: 2, modifiers: 0, phase: .down, bindings: [:], recording: true)
+        let release = router.route(button: 2, modifiers: 0, phase: .up, bindings: [:], recording: false)
+        XCTAssertTrue(release.consume)
+        XCTAssertNil(release.captured)
+        XCTAssertNil(release.action)
     }
 }
