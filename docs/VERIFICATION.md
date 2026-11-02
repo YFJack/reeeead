@@ -79,3 +79,13 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 - Built 0.4.1 (8) with `-j 1`; deployed through `scripts/deploy.py` to both configured Macs. Per-file hashes and code signatures verified; installed executable SHA-256 on both: `3565ef0331a9b661e1e62bca750016ca1845f1bc3852d91a2eb8b266d0826b51`.
 - MacBook was relaunched. Its new 0.4.1 GUI process reported Accessibility trusted, event posting allowed and mouse tap ready at the installed path. Before the fix, its 0.4.0 report also showed all three true; this session found no missing permission to explain the recording issue.
 - Physical ATK button recording, global invocation from another app and MacBook visual interaction remain pending user/hardware acceptance. Local UI automation and deployment do not establish those results.
+
+
+## 0.4.2 ruler placement input
+
+- On the reported MacBook, both actions were bound to keyboard keys and the GUI permission report showed no mouse tap active. A mouse-shortcut event tap was therefore not intercepting left clicks in that configuration.
+- Disabled panel movement and the transparent canvas's default mouse-down window-drag behavior. Added a 1% alpha placement surface, kept through the second mouse-up; the locked reading band becomes fully transparent and the panel explicitly ignores mouse events.
+- Added a real WindowServer hit-test regression using the production panel configuration. It checks points away from the visible line/hint, the undimmed band after the first click, the held second click, passthrough after release, and unchanged locked geometry. A brief main-run-loop turn is required to commit window drawing before querying hit tests. The earlier canvas permits window dragging; the original MacBook physical-click failure itself was not remotely reproduced.
+- All 40 XCTest cases passed with the local HTTP fixture enabled; zero failures/skips.
+- Mac mini installed-app UI automation: first left click at y=300 changed the hint to bottom-edge placement; second left click at y=520 produced a clear fixed band with dimming above/below, and the app reported “Reading band locked.” Closed the test ruler afterward. App-targeted automation does not substitute for physical MacBook mouse acceptance.
+- Release 0.4.2 (9) installed on both configured Macs with per-file hashes and signatures verified. Executable SHA-256: `4978368414daba3430b9e14168d6e60ddb4e1e85c443f63ade5d4e7aaf58d50d`. MacBook relaunched separately; physical mouse and external-display validation remain separate from deployment.

@@ -4,6 +4,20 @@ import Combine
 final class RulerPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    init(screenFrame: NSRect) {
+        super.init(contentRect: screenFrame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
+        backgroundColor = .clear
+        isOpaque = false
+        hasShadow = false
+        isMovable = false
+        ignoresMouseEvents = false
+        hidesOnDeactivate = false
+        isReleasedWhenClosed = false
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        acceptsMouseMovedEvents = true
+    }
 }
 
 final class RulerController: ObservableObject {
@@ -32,15 +46,7 @@ final class RulerController: ObservableObject {
         }
         let point = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(point, $0.frame, false) }) ?? NSScreen.main else { removeTap(); return }
-        let panel = RulerPanel(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.acceptsMouseMovedEvents = true
+        let panel = RulerPanel(screenFrame: screen.frame)
         let canvas = RulerCanvas(frame: NSRect(origin: .zero, size: screen.frame.size), preferences: preferences)
         canvas.geometry.move(to: screen.frame.maxY - point.y)
         canvas.onLock = { [weak self, weak panel, weak canvas] in
@@ -107,6 +113,7 @@ final class RulerCanvas: NSView {
     private var area: NSTrackingArea?
     private var pendingLock = false
     override var isFlipped: Bool { true }
+    override var mouseDownCanMoveWindow: Bool { false }
     init(frame: NSRect, preferences: Preferences) {
         geometry = RulerGeometry(height: frame.height)
         self.preferences = preferences
@@ -142,6 +149,13 @@ final class RulerCanvas: NSView {
     override func scrollWheel(with event: NSEvent) {} // Only consumes scrolling while placing boundaries.
     override func draw(_ dirtyRect: NSRect) {
         NSColor.clear.setFill(); bounds.fill(using: .copy)
+        // WindowServer hit testing skips fully transparent pixels. Keep a nearly
+        // invisible surface across the display until the second click is released.
+        // The locked band is truly clear and the panel then explicitly passes input through.
+        if geometry.phase != .locked || pendingLock {
+            NSColor.black.withAlphaComponent(0.01).setFill()
+            bounds.fill()
+        }
         let line = preferences.lineColor == "amber" ? NSColor(red: 0.91, green: 0.57, blue: 0.29, alpha: 1) : NSColor(red: 0.68, green: 0.84, blue: 0.62, alpha: 1)
         if geometry.phase != .tracking {
             NSColor.black.withAlphaComponent(preferences.dimOpacity).setFill()

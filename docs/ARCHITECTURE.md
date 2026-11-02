@@ -20,7 +20,7 @@ Reeeead is a Swift Package executable wrapped in a normal `.app` by `scripts/bui
 
 - The coordinate model uses a flipped, screen-local Y axis; the initial global mouse coordinate is converted from the screen's maximum Y.
 - The first anchor is fixed. The second boundary cannot move above it; a band under 8 points cannot lock.
-- Before locking, the overlay receives pointer input without activating or taking keyboard focus from the source application.
+- Before locking, the overlay receives pointer input without activating or taking keyboard focus from the source application. The panel is not movable and the canvas disables mouse-down window dragging. A 1% alpha surface keeps the placement area hittable, including the clear band until the second mouse-up; after locking it is fully clear again.
 - The second mouse-up switches `ignoresMouseEvents` on; the click used to fix the band never becomes an accidental click in the source app.
 - Locked geometry does not react to the pointer. Esc is consumed only while the ruler is active; the tap is destroyed on exit.
 - Display changes and sleep close the overlay. Full-screen and multiple-display behavior require actual hardware/UI verification.
