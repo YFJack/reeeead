@@ -5,7 +5,7 @@ Reeeead is a Swift Package executable wrapped in a normal `.app` by `scripts/bui
 | Component | Responsibility |
 | --- | --- |
 | `AppModel` | Preferences, page state and shortcut changes |
-| `HotKeyCenter` | Carbon keyboard hotkeys plus a narrowly filtered Quartz side-button tap; restore bindings on sheet dismissal |
+| `HotKeyCenter` | Carbon keyboard hotkeys plus Quartz taps for mouse and side-specific Shift combinations; restore bindings on sheet dismissal |
 | `MouseShortcutRouter` | Paired down/up consumption, exact modifier matching and one action on release |
 | `ClipboardSnapshot` | Preserve all clipboard items/formats; 1 MB in-memory budget, private temporary storage for larger data, 256 MB total cap, change-count guarded restore and scoped cleanup |
 | `SelectionReader` | Frontmost app's accessibility selection; UTF-16 range fallback; optional bounded clipboard copy |
@@ -45,13 +45,15 @@ The build script accepts `REEEEAD_SIGN_IDENTITY` (legacy `LUMA_SIGN_IDENTITY` al
 ## Shortcut recording and dispatch
 
 - Keyboard and mouse recording use a sheet-scoped local event monitor before responder/menu dispatch, so focus moving to a SwiftUI button does not break recording. It commits on key release, removes its monitor on dismissal and clears pending input when the sheet loses focus. Plain Escape cancels; modified Escape can be assigned.
-- Keyboard bindings use Carbon global hotkey registration. Letters, function/navigation keys, arrows and numeric keypad keys can be used with or without modifiers. System-reserved combinations can fail registration.
+- Generic keyboard bindings use Carbon global hotkey registration. Letters, function/navigation keys, arrows and numeric keypad keys can be used with or without modifiers. System-reserved combinations can fail registration.
 - The mouse tap observes down/up/drag events for all mouse buttons. Middle/additional buttons are accepted directly; primary/secondary buttons require modifiers so ordinary clicking remains available. Recording only captures while the app and its sheet are active.
 - Native zero-based button numbers 0...31 are displayed to the user as Mouse 1...32. Modifier matching ignores Caps Lock and Fn.
 - A matched press is remembered until release, even if modifiers change. The complete matched pair and its drags are consumed. Unmatched presses pass through.
 - Actions and recorder callbacks are dispatched after release. A generation token discards callbacks queued before reconfiguration.
 - The global mouse tap exists only when a saved mouse binding needs it; recording uses the local monitor. No mouse movement, text or click history is stored.
 - The optional `mouseButton` field preserves decoding of existing keyboard preferences.
+- Optional `shiftSide` records left/right/both device flags before the device-independent mask is applied. Missing side information in old preferences means either Shift key; a side-specific binding never matches an event with unknown side. Generic and side-specific versions of the same shortcut conflict; left and right versions do not.
+- Side-specific keyboard combinations use a separate key-down/up event tap while configured, requiring the existing Accessibility authorization. Matched pairs are consumed and trigger once on release, preserving the side seen at key-down. Unmatched typing passes through. These combinations cannot use Carbon’s generic Shift registration, so external application hotkey conflicts are not detected by Carbon for them. No typed text or event history is retained.
 - Local keyboard capture follows [Apple’s event monitor documentation](https://developer.apple.com/documentation/appkit/nsevent/addlocalmonitorforevents(matching:handler:)).
 - Event types follow [Apple's Quartz documentation](https://developer.apple.com/documentation/coregraphics/cgeventtype).
 

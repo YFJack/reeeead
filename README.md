@@ -73,7 +73,7 @@ MiniMax defaults: `https://api.minimax.cn/v1/t2a_v2`, model `speech-2.8-hd`, voi
 
 ### Mouse buttons and displays
 
-Open Settings → Shortcuts and press the shortcut you want; release to save. Letters, function keys, arrows, navigation keys, the number pad, middle and additional mouse buttons are supported. Left/right mouse buttons can be combined with modifiers; plain left/right clicks remain available for normal interaction. Escape cancels recording. If a driver turns a side button into a keyboard macro, record that keyboard shortcut or restore ordinary button behavior in the driver.
+Open Settings → Shortcuts and press the shortcut you want; release to save. Letters, function keys, arrows, navigation keys, the number pad, middle and additional mouse buttons are supported. Left/right mouse buttons can be combined with modifiers; plain left/right clicks remain available for normal interaction. Escape cancels recording. Newly recorded Shift combinations distinguish the left and right keys, including Shift + mouse buttons. Existing generic Shift bindings keep accepting either side until re-recorded. If a driver turns a side button into a keyboard macro, record that keyboard shortcut or restore ordinary button behavior in the driver.
 
 The ruler starts on the **display containing the pointer**. It does not follow the pointer to a second display after activation. Display changes and sleep close it. External-display, physical-keyboard and mouse-hardware acceptance testing is still in progress; see the [verification record](docs/VERIFICATION.md).
 

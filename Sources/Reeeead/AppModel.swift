@@ -42,12 +42,12 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
         let readError = hotKeys.registrationError
         let ruler = hotKeys.register(preferences.rulerShortcut, id: 2)
         notice = !read ? readError : (!ruler ? hotKeys.registrationError : "")
-        PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady)
+        PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady, keyboardTapReady: hotKeys.keyboardTapReady)
     }
     func beginRecording(_ id: UInt32) {
         ruler.stop()
         hotKeys.unregisterAll(); recording = id; notice = ""; recordingError = ""
-        PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady)
+        PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady, keyboardTapReady: hotKeys.keyboardTapReady)
     }
     func acceptShortcut(_ shortcut: Shortcut, id: UInt32) -> String? {
         let other = id == 1 ? preferences.rulerShortcut : preferences.readShortcut
@@ -61,7 +61,7 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
     func refreshPermission() {
         let changed = permission != SelectionReader.permitted
         permission = SelectionReader.permitted
-        if recording == nil && (changed || preferences.readShortcut.mouseButton != nil || preferences.rulerShortcut.mouseButton != nil) { registerShortcuts() }
-        PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady)
+        if recording == nil && (changed || preferences.readShortcut.mouseButton != nil || preferences.rulerShortcut.mouseButton != nil || preferences.readShortcut.shiftSide != nil || preferences.rulerShortcut.shiftSide != nil) { registerShortcuts() }
+        PermissionReport.write(mouseTapReady: hotKeys.mouseTapReady, keyboardTapReady: hotKeys.keyboardTapReady)
     }
 }

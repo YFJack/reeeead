@@ -1,28 +1,59 @@
 import AppKit
 import Carbon
 
+enum ShiftSide: String, Codable {
+    case left, right, both
+
+    static func from(_ flags: CGEventFlags) -> ShiftSide? {
+        guard flags.contains(.maskShift) else { return nil }
+        // Public device flags from IOKit/hidsystem/IOLLEvent.h:
+        // NX_DEVICELSHIFTKEYMASK = 0x2, NX_DEVICERSHIFTKEYMASK = 0x4.
+        switch flags.rawValue & 0x6 {
+        case 0x2: return .left
+        case 0x4: return .right
+        case 0x6: return .both
+        default: return nil // Legacy/synthetic events may only carry generic Shift.
+        }
+    }
+
+    var display: String {
+        switch self {
+        case .left: return L("左 ⇧")
+        case .right: return L("右 ⇧")
+        case .both: return L("左右 ⇧")
+        }
+    }
+}
+
 struct Shortcut: Codable, Equatable {
     var keyCode: UInt32
     var modifiers: UInt32
     var label: String
     var mouseButton: Int? = nil
+    var shiftSide: ShiftSide? = nil // Missing in old preferences: either Shift remains valid.
     static let read = Shortcut(keyCode: 15, modifiers: UInt32(controlKey | optionKey), label: "R")
     static let ruler = Shortcut(keyCode: 37, modifiers: UInt32(controlKey | optionKey), label: "L")
     var display: String {
         var s = ""
         if modifiers & UInt32(controlKey) != 0 { s += "⌃" }
         if modifiers & UInt32(optionKey) != 0 { s += "⌥" }
-        if modifiers & UInt32(shiftKey) != 0 { s += "⇧" }
+        if modifiers & UInt32(shiftKey) != 0 { s += shiftSide?.display ?? "⇧" }
         if modifiers & UInt32(cmdKey) != 0 { s += "⌘" }
         return s + (mouseButton.map { L("鼠标 %@", String($0 + 1)) } ?? label)
     }
     func conflicts(with other: Shortcut) -> Bool {
+        sameInput(as: other) && (shiftSide == nil || other.shiftSide == nil || shiftSide == other.shiftSide)
+    }
+    func matches(_ input: Shortcut) -> Bool {
+        sameInput(as: input) && (shiftSide == nil || shiftSide == input.shiftSide)
+    }
+    private func sameInput(as other: Shortcut) -> Bool {
         modifiers == other.modifiers && mouseButton == other.mouseButton && (mouseButton != nil || keyCode == other.keyCode)
     }
-    static func mouse(button: Int, modifiers: UInt32 = 0) -> Shortcut? {
+    static func mouse(button: Int, modifiers: UInt32 = 0, shiftSide: ShiftSide? = nil) -> Shortcut? {
         // Plain primary/secondary clicks remain available for ordinary UI interaction.
         guard (0...31).contains(button), button >= 2 || modifiers != 0 else { return nil }
-        return Shortcut(keyCode: 0, modifiers: modifiers, label: L("鼠标 %@", String(button + 1)), mouseButton: button)
+        return Shortcut(keyCode: 0, modifiers: modifiers, label: L("鼠标 %@", String(button + 1)), mouseButton: button, shiftSide: shiftSide)
     }
     static func modifiers(from flags: CGEventFlags) -> UInt32 {
         var result: UInt32 = 0
@@ -46,7 +77,8 @@ struct Shortcut: Codable, Equatable {
         if f.contains(.option) { mods |= UInt32(optionKey) }
         if f.contains(.shift) { mods |= UInt32(shiftKey) }
         if f.contains(.command) { mods |= UInt32(cmdKey) }
-        return Shortcut(keyCode: UInt32(event.keyCode), modifiers: mods, label: name)
+        return Shortcut(keyCode: UInt32(event.keyCode), modifiers: mods, label: name,
+                        shiftSide: ShiftSide.from(CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))))
     }
 }
 
@@ -60,12 +92,12 @@ struct MouseShortcutRouter {
     }
     private struct Press { let shortcut: Shortcut; let action: UInt32? }
     private var presses: [Int: Press] = [:]
-    mutating func route(button: Int, modifiers: UInt32, phase: Phase, bindings: [UInt32: Shortcut], recording: Bool) -> Decision {
+    mutating func route(button: Int, modifiers: UInt32, phase: Phase, bindings: [UInt32: Shortcut], recording: Bool, shiftSide: ShiftSide? = nil) -> Decision {
         switch phase {
         case .down:
             if presses[button] != nil { return Decision(consume: true) }
-            guard let shortcut = Shortcut.mouse(button: button, modifiers: modifiers) else { return Decision() }
-            let action = bindings.first { $0.value.conflicts(with: shortcut) }?.key
+            guard let shortcut = Shortcut.mouse(button: button, modifiers: modifiers, shiftSide: shiftSide) else { return Decision() }
+            let action = bindings.first { $0.value.matches(shortcut) }?.key
             guard recording || action != nil else { return Decision() }
             presses[button] = Press(shortcut: shortcut, action: action)
             return Decision(consume: true)
@@ -75,6 +107,28 @@ struct MouseShortcutRouter {
             guard let press = presses.removeValue(forKey: button) else { return Decision() }
             return Decision(consume: true, action: press.action, captured: recording ? press.shortcut : nil)
         }
+    }
+}
+
+// Side-specific keyboard combinations cannot use Carbon's generic Shift flag.
+// Keep matched down/up pairs together even when Shift is released before the key.
+struct KeyboardShortcutRouter {
+    struct Decision { var consume = false; var action: UInt32? }
+    private var presses: [UInt32: UInt32] = [:]
+
+    mutating func route(keyCode: UInt32, flags: CGEventFlags, down: Bool, repeatKey: Bool = false,
+                        bindings: [UInt32: Shortcut]) -> Decision {
+        if !down {
+            guard let action = presses.removeValue(forKey: keyCode) else { return Decision() }
+            return Decision(consume: true, action: action)
+        }
+        if presses[keyCode] != nil { return Decision(consume: true) }
+        guard !repeatKey else { return Decision() }
+        let input = Shortcut(keyCode: keyCode, modifiers: Shortcut.modifiers(from: flags), label: "",
+                             shiftSide: ShiftSide.from(flags))
+        guard let action = bindings.first(where: { $0.value.matches(input) })?.key else { return Decision() }
+        presses[keyCode] = action
+        return Decision(consume: true)
     }
 }
 

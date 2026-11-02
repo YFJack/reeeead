@@ -160,3 +160,7 @@
 "立即生效，不改变语音、快捷键或 API 配置。" = "Changes immediately. Voice, shortcut and API settings stay the same.";
 "按下想用的快捷键，松开即可保存。" = "Press your shortcut. Release to save.";
 "鼠标快捷键需要辅助功能权限。开启后点「重新检查」。" = "Mouse shortcuts need Accessibility access. Enable it, then click Recheck.";
+"左 ⇧" = "L⇧";
+"右 ⇧" = "R⇧";
+"左右 ⇧" = "L+R⇧";
+"区分左右 Shift 需要辅助功能权限。开启后点「重新检查」。" = "Left/right Shift shortcuts need Accessibility access. Enable it, then click Recheck.";

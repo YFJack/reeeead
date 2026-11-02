@@ -89,3 +89,12 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 - All 40 XCTest cases passed with the local HTTP fixture enabled; zero failures/skips.
 - Mac mini installed-app UI automation: first left click at y=300 changed the hint to bottom-edge placement; second left click at y=520 produced a clear fixed band with dimming above/below, and the app reported “Reading band locked.” Closed the test ruler afterward. App-targeted automation does not substitute for physical MacBook mouse acceptance.
 - Release 0.4.2 (9) installed on both configured Macs with per-file hashes and signatures verified. Executable SHA-256: `4978368414daba3430b9e14168d6e60ddb4e1e85c443f63ade5d4e7aaf58d50d`. MacBook relaunched separately; physical mouse and external-display validation remain separate from deployment.
+
+
+## 0.4.3 left/right Shift combinations
+
+- Recording keeps device-specific Shift flags for keyboard and mouse combinations. Left, right and both Shift keys display distinctly. Existing bindings without `shiftSide` remain compatible with either side; re-recording with a physical keyboard opts into the distinction.
+- Side-specific keyboard combinations use a temporary key event tap while configured. Left/right versions of the same base key can invoke different actions. Repeats are consumed without repeating the action; release uses the original down state even if Shift was released first. Unmatched events pass through. Generic old keyboard bindings still use Carbon.
+- All 47 XCTest cases passed with the local HTTP fixture enabled, zero skips/failures. Added seven cases for raw device flags, localized labels and JSON round trips, legacy wildcard conflicts, opposite-side rejection, exact keyboard and mouse dispatch, autorepeat and release ordering, and recorder propagation. Tests construct input events without posting them to user applications.
+- Live Mac mini UI accepts recording and restores the original Control-Option-R setting. CUA's `Shift_R+grave` injection produced only generic Shift in the delivered event, so it cannot verify a physical right Shift; the app intentionally preserves the generic binding when the event has no side information. Physical left/right recording and cross-app dispatch remain hardware acceptance items.
+- Built 0.4.3 (10) with `-j 1`; installed both configured Macs through `scripts/deploy.py`. Per-file hashes and code signatures verified; executable SHA-256 on both: `b88a106a1cc3f8440bcc46a85d639ae64eb6e6a790ded818638603ca56709c3b`. MacBook was relaunched separately.

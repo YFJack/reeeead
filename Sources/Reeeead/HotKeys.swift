@@ -9,6 +9,11 @@ final class HotKeyCenter {
     var mouseTapReady: Bool { mouseTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false }
     private var mouseSource: CFRunLoopSource?
     private var mouseRouter = MouseShortcutRouter()
+    private var keyboardBindings: [UInt32: Shortcut] = [:]
+    private var keyboardTap: CFMachPort?
+    private var keyboardSource: CFRunLoopSource?
+    private var keyboardRouter = KeyboardShortcutRouter()
+    var keyboardTapReady: Bool { keyboardTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false }
     private var generation = UUID()
     private(set) var registrationError = ""
     var onRead: (() -> Void)?
@@ -37,6 +42,17 @@ final class HotKeyCenter {
             }
             if let old = refs.removeValue(forKey: id) { UnregisterEventHotKey(old) }
             mouseBindings[id] = shortcut
+            keyboardBindings.removeValue(forKey: id)
+            return true
+        }
+        if shortcut.shiftSide != nil {
+            guard installKeyboardTap() else {
+                registrationError = L("区分左右 Shift 需要辅助功能权限。开启后点「重新检查」。")
+                return false
+            }
+            if let old = refs.removeValue(forKey: id) { UnregisterEventHotKey(old) }
+            keyboardBindings[id] = shortcut
+            mouseBindings.removeValue(forKey: id)
             return true
         }
         var ref: EventHotKeyRef?
@@ -48,7 +64,43 @@ final class HotKeyCenter {
         if let old = refs[id] { UnregisterEventHotKey(old) }
         refs[id] = ref
         mouseBindings.removeValue(forKey: id)
+        keyboardBindings.removeValue(forKey: id)
         return true
+    }
+    private func installKeyboardTap() -> Bool {
+        if let keyboardTap {
+            CGEvent.tapEnable(tap: keyboardTap, enable: true)
+            return keyboardTapReady
+        }
+        let mask = CGEventMask((1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue))
+        keyboardTap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
+            options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, info in
+                guard let info else { return Unmanaged.passUnretained(event) }
+                let center = Unmanaged<HotKeyCenter>.fromOpaque(info).takeUnretainedValue()
+                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    center.keyboardRouter = KeyboardShortcutRouter()
+                    if let tap = center.keyboardTap { CGEvent.tapEnable(tap: tap, enable: true) }
+                    return Unmanaged.passUnretained(event)
+                }
+                guard type == .keyDown || type == .keyUp else { return Unmanaged.passUnretained(event) }
+                let decision = center.keyboardRouter.route(keyCode: UInt32(event.getIntegerValueField(.keyboardEventKeycode)),
+                    flags: event.flags, down: type == .keyDown, repeatKey: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
+                    bindings: center.keyboardBindings)
+                if let action = decision.action {
+                    let generation = center.generation
+                    DispatchQueue.main.async { [weak center] in
+                        guard let center, center.generation == generation else { return }
+                        if action == 1 { center.onRead?() }
+                        if action == 2 { center.onRuler?() }
+                    }
+                }
+                return decision.consume ? nil : Unmanaged.passUnretained(event)
+            }, userInfo: Unmanaged.passUnretained(self).toOpaque())
+        guard let keyboardTap else { return false }
+        keyboardSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, keyboardTap, 0)
+        CFRunLoopAddSource(CFRunLoopGetMain(), keyboardSource, .commonModes)
+        CGEvent.tapEnable(tap: keyboardTap, enable: true)
+        return keyboardTapReady
     }
     private func installMouseTap() -> Bool {
         if let mouseTap {
@@ -72,7 +124,7 @@ final class HotKeyCenter {
             case .leftMouseDragged, .rightMouseDragged, .otherMouseDragged: phase = .drag
             default: return Unmanaged.passUnretained(event)
             }
-            let decision = center.mouseRouter.route(button: Int(event.getIntegerValueField(.mouseEventButtonNumber)), modifiers: Shortcut.modifiers(from: event.flags), phase: phase, bindings: center.mouseBindings, recording: false)
+            let decision = center.mouseRouter.route(button: Int(event.getIntegerValueField(.mouseEventButtonNumber)), modifiers: Shortcut.modifiers(from: event.flags), phase: phase, bindings: center.mouseBindings, recording: false, shiftSide: ShiftSide.from(event.flags))
             if decision.action != nil {
                 let generation = center.generation
                 DispatchQueue.main.async { [weak center] in
@@ -95,6 +147,11 @@ final class HotKeyCenter {
         refs.removeAll()
         mouseBindings.removeAll()
         mouseRouter = MouseShortcutRouter()
+        keyboardBindings.removeAll()
+        keyboardRouter = KeyboardShortcutRouter()
+        if let keyboardTap { CGEvent.tapEnable(tap: keyboardTap, enable: false); CFMachPortInvalidate(keyboardTap) }
+        if let keyboardSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), keyboardSource, .commonModes) }
+        keyboardTap = nil; keyboardSource = nil
         if let mouseTap { CGEvent.tapEnable(tap: mouseTap, enable: false); CFMachPortInvalidate(mouseTap) }
         if let mouseSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), mouseSource, .commonModes) }
         mouseTap = nil; mouseSource = nil
@@ -144,7 +201,8 @@ final class ShortcutRecorderView: NSView {
         }
         if let phase {
             let modifiers = Shortcut.modifiers(from: CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue)))
-            let decision = mouseRouter.route(button: event.buttonNumber, modifiers: modifiers, phase: phase, bindings: [:], recording: true)
+            let decision = mouseRouter.route(button: event.buttonNumber, modifiers: modifiers, phase: phase, bindings: [:], recording: true,
+                shiftSide: ShiftSide.from(CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))))
             if let shortcut = decision.captured { onShortcut?(shortcut) }
             return decision.consume ? nil : event
         }

@@ -3,7 +3,7 @@ import ApplicationServices
 
 enum PermissionReport {
     // Local support metadata only: no selected text, input history or credentials.
-    static func write(mouseTapReady: Bool) {
+    static func write(mouseTapReady: Bool, keyboardTapReady: Bool) {
         let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Reeeead", isDirectory: true)
         let report: [String: Any] = [
             "updatedAt": ISO8601DateFormatter().string(from: Date()),
@@ -12,7 +12,8 @@ enum PermissionReport {
             "appPath": Bundle.main.bundlePath,
             "accessibilityTrusted": AXIsProcessTrusted(),
             "eventPostingAllowed": CGPreflightPostEventAccess(),
-            "mouseTapReady": mouseTapReady
+            "mouseTapReady": mouseTapReady,
+            "keyboardTapReady": keyboardTapReady
         ]
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
