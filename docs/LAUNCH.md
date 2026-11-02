@@ -26,7 +26,7 @@
 
 ## External publication boundary
 
-X CLI `xurl` 1.3.4 is installed. X web login succeeded. The user explicitly accepted the developer agreement; onboarding has been submitted. Developer app/OAuth setup remains incomplete. The primary text in `marketing/launch-copy.md` was published through the authenticated website as @yfjack199017, with the landscape film and SRT captions. The post was opened again to verify text, the repository link and attached video: https://x.com/yfjack199017/status/2116936600819290403 . No duplicate CLI post is needed.
+X CLI `xurl` 1.3.4 is installed. X web login succeeded. The user explicitly accepted the developer agreement; onboarding has been submitted. Developer OAuth setup and CLI login are complete for @yfjack199017. The account was verified through `xurl whoami`; reading the existing English post returned HTTP 402 `credits depleted`, so paid API operations remain unavailable without credits. No credits were purchased. The primary text in `marketing/launch-copy.md` was published through the authenticated website as @yfjack199017, with the landscape film and SRT captions. The post was opened again to verify text, the repository link and attached video: https://x.com/yfjack199017/status/2116936600819290403 . No duplicate CLI post is needed.
 
 The bilingual update installs native app 0.4.0 on both configured Macs. Previously reported physical shortcut, mouse-side-button and external-display acceptance gaps remain in `VERIFICATION.md`.
 
@@ -46,3 +46,13 @@ The bilingual update installs native app 0.4.0 on both configured Macs. Previous
 - English MP4/subtitle delivery to the MacBook succeeded on retry after a transient SSH timeout. All four SHA-256 hashes match local originals in Downloads/Reeeead-launch.
 - English X update published with the 35-second video and English SRT captions: https://x.com/yfjack199017/status/2116938900153454880 . Sent confirmation and independent post page verified. The original Chinese-narrated post is retained.
 - Source preview release: https://github.com/YFJack/reeeead/releases/tag/v0.4.0 ; English landscape/portrait MP4, SRT, VTT and cover uploaded.
+
+
+## X CLI authentication — 2026-11-02
+
+- Official `xurl` 1.3.4, native public client with PKCE, localhost callback.
+- Default app: `reeeead`; default OAuth2 user: `yfjack199017`.
+- Granted scopes: `tweet.read users.read tweet.write media.write offline.access`. The CLI's broader default authorization URL was reduced before consent; no DM or email scope was requested.
+- `xurl auth status` confirms the saved user token; `xurl whoami` returned the expected account.
+- `xurl read 2116938900153454880` returned HTTP 402 `credits depleted`. Authentication works; credit-dependent post/media operations have not been verified. No duplicate post and no credit purchase.
+- OAuth credentials stay in the CLI's local token store and are not part of the repository.
