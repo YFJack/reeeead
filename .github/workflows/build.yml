@@ -6,11 +6,12 @@ permissions:
   contents: read
 jobs:
   build:
-    runs-on: macos-15
+    # Explicit Intel pool avoids the macOS arm64 capacity queue.
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - name: Test
-        run: swift test -j 2
+        run: swift test -j 1
       - name: Build native app
         run: ./scripts/build.sh release
       - name: Verify signature
@@ -23,5 +24,5 @@ jobs:
           test -f dist/Reeeead.app/Contents/Resources/Reeeead_Reeeead.bundle/Localization/zh-Hans.lproj/Localizable.strings
       - uses: actions/upload-artifact@v4
         with:
-          name: Reeeead-macOS-unsigned-for-distribution
+          name: Reeeead-macOS-x86_64-unsigned-for-distribution
           path: dist/Reeeead.app
