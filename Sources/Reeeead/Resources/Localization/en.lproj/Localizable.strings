@@ -204,3 +204,29 @@
 "窗口聚焦预览" = "Window Focus preview";
 
 "窗口圆角" = "Window corners";
+
+"锁定高亮窗口" = "Lock highlighted windows";
+
+"解锁并跟随当前窗口" = "Unlock and follow the active window";
+
+"添加下一个窗口" = "Add another window";
+
+"取消添加窗口" = "Cancel adding a window";
+
+"开始 25 分钟专注" = "Start 25-minute focus";
+
+"停止专注循环" = "Stop focus cycle";
+
+"休息 %@" = "Break %@";
+
+"点击要添加的窗口。Esc 取消添加。" = "Click a window to add it. Esc cancels adding.";
+
+"窗口聚焦控制" = "Window Focus controls";
+
+"已恢复跟随当前窗口。" = "Following the active window again.";
+
+"高亮窗口已锁定。" = "Highlighted windows locked.";
+
+"已取消添加窗口。" = "Adding a window cancelled.";
+
+"窗口已加入高亮。" = "Window added to the highlight.";

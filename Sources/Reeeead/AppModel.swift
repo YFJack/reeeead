@@ -43,7 +43,7 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
         hotKeys.onFocus = { [weak self] in self?.toggleFocus() }
         hotKeys.onEscape = { [weak self] in
             guard let self, self.focus.active else { return false }
-            self.focus.stop()
+            self.focus.handleEscape()
             return true
         }
         focus.onMessage = { [weak self] text in self?.speech.show(text) }

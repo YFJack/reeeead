@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import Combine
 import QuartzCore
+import SwiftUI
 
 // AX uses a top-left origin on the primary display, including negative
 // coordinates for displays above or to the left. AppKit uses bottom-left.
@@ -23,6 +24,15 @@ enum WindowFocusGeometry {
 final class WindowFocusController: ObservableObject {
     @Published private(set) var active = false
     var onMessage: ((String) -> Void)?
+    @Published private(set) var locked = false
+    @Published private(set) var addingWindow = false
+    @Published private(set) var cycleState = FocusCycle.Snapshot()
+    private var selectedWindows: Set<CGWindowID> = []
+    private var pendingAdd = false
+    private var lastRegions: [FocusRegion] = []
+    private var controls: FocusControlsPanel?
+    private var cycle = FocusCycle()
+    private var cycleTimer: Timer?
     private var panels: [RulerPanel] = []
     private var timer: Timer?
     private var observers: [NSObjectProtocol] = []
@@ -61,11 +71,15 @@ final class WindowFocusController: ObservableObject {
         for screen in NSScreen.screens {
             let panel = RulerPanel(screenFrame: screen.frame)
             panel.ignoresMouseEvents = true
+            panel.setAccessibilityElement(false)
             panel.acceptsMouseMovedEvents = false
             panel.contentView = WindowFocusCanvas(frame: NSRect(origin: .zero, size: screen.frame.size), opacity: opacity)
             panels.append(panel)
         }
         active = true
+        let controls = FocusControlsPanel()
+        controls.contentView = NSHostingView(rootView: FocusFloatingControls(controller: self))
+        self.controls = controls
         render(rect)
         // Notifications handle normal changes; a low-rate fallback covers apps
         // with incomplete AX support. Fast polling exists only during a mouse press.
@@ -78,6 +92,62 @@ final class WindowFocusController: ObservableObject {
         installMouseMonitoring()
         onMessage?(L("窗口聚焦已开启。自动跟随当前窗口，Esc 退出。"))
     }
+    func toggleLock() {
+        guard active else { return }
+        if locked {
+            locked = false; addingWindow = false; pendingAdd = false
+            selectedWindows.removeAll()
+            onMessage?(L("已恢复跟随当前窗口。"))
+            requestRefresh(reselect: true)
+        } else if pinCurrentWindow() {
+            locked = true; onMessage?(L("高亮窗口已锁定。")); requestRefresh()
+        }
+    }
+    func toggleAdding() {
+        if addingWindow { addingWindow = false; pendingAdd = false; onMessage?(L("已取消添加窗口。")); return }
+        if !locked {
+            guard pinCurrentWindow() else { return }
+            locked = true
+        }
+        addingWindow = true
+        onMessage?(L("点击要添加的窗口。Esc 取消添加。"))
+    }
+    func handleEscape() {
+        if addingWindow { addingWindow = false; pendingAdd = false; onMessage?(L("已取消添加窗口。")) }
+        else { stop() }
+    }
+    private func pinCurrentWindow() -> Bool {
+        guard let rect = focusedWindowRect(reselect: true), let pid = trackedPID,
+              let primary = NSScreen.screens.first else { return false }
+        let candidate = FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height).first {
+            $0.pid == pid && abs($0.rect.minX - rect.minX) < 2 && abs($0.rect.minY - rect.minY) < 2 && abs($0.rect.width - rect.width) < 2 && abs($0.rect.height - rect.height) < 2
+        }
+        guard let candidate else {
+            onMessage?(L("未能读取当前窗口，请切换到要阅读的窗口后重试。")); return false
+        }
+        selectedWindows.insert(candidate.id)
+        return true
+    }
+    func toggleCycle() {
+        guard active else { return }
+        if cycle.startedAt != nil {
+            cycle.stop(); cycleTimer?.invalidate(); cycleTimer = nil
+        } else {
+            cycle.start(at: ProcessInfo.processInfo.systemUptime)
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.updateCycle() }
+            timer.tolerance = 0.05
+            cycleTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
+        updateCycle()
+    }
+    private func updateCycle() {
+        let next = cycle.snapshot(at: ProcessInfo.processInfo.systemUptime)
+        if next.phase != cycleState.phase {
+            for panel in panels { (panel.contentView as? WindowFocusCanvas)?.setResting(next.phase == .rest) }
+        }
+        cycleState = next
+    }
     func updateOpacity(_ opacity: Double) {
         for panel in panels {
             (panel.contentView as? WindowFocusCanvas)?.opacity = opacity
@@ -85,10 +155,13 @@ final class WindowFocusController: ObservableObject {
     }
     func updateCornerRadius(_ radius: CGFloat) {
         cornerRadius = radius
-        if let rect = lastRect { lastRect = nil; render(rect) }
+        let regions = lastRegions; lastRegions = []; renderRegions(regions)
     }
     func stop() {
         timer?.invalidate(); timer = nil
+        cycleTimer?.invalidate(); cycleTimer = nil; cycle.stop(); cycleState = .init()
+        controls?.orderOut(nil); controls?.contentView = nil; controls = nil
+        selectedWindows.removeAll(); locked = false; addingWindow = false; pendingAdd = false; lastRegions = []
         dragTimer?.invalidate(); dragTimer = nil
         scheduledRefresh?.cancel(); scheduledRefresh = nil
         needsReselect = false
@@ -119,24 +192,51 @@ final class WindowFocusController: ObservableObject {
         guard active else { return }
         guard AXIsProcessTrusted() else { stop(); return }
         lastRefresh = CACurrentMediaTime()
+        if pendingAdd {
+            pendingAdd = false
+            if pinCurrentWindow() { addingWindow = false; onMessage?(L("窗口已加入高亮。")) }
+        }
+        if locked, let primary = NSScreen.screens.first {
+            let windows = FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height)
+            renderRegions(FocusWindowInfo.regions(selected: selectedWindows, windows: windows))
+            return
+        }
         guard let rect = focusedWindowRect(reselect: reselect) else {
             // Never leave an opaque desktop or a stale hole over another app.
             for panel in panels { panel.orderOut(nil) }
-            lastRect = nil
+            controls?.orderOut(nil)
+            lastRect = nil; lastRegions = []
             return
         }
         render(rect)
     }
     private func render(_ rect: CGRect) {
-        guard rect != lastRect else { return }
-        lastRect = rect
+        renderRegions([FocusRegion(rect: rect)])
+    }
+    private func renderRegions(_ regions: [FocusRegion]) {
+        guard regions != lastRegions else { return }
+        lastRegions = regions
+        lastRect = regions.first?.rect
+        guard !regions.isEmpty else {
+            for panel in panels { panel.orderOut(nil) }
+            // Keep the controls available to unlock or stop when all selected
+            // windows are minimized, closed or on another Space.
+            return
+        }
         for panel in panels {
             guard let canvas = panel.contentView as? WindowFocusCanvas else { continue }
-            let fillsScreen = abs(rect.minX - panel.frame.minX) < 1 && abs(rect.minY - panel.frame.minY) < 1 && abs(rect.width - panel.frame.width) < 1 && abs(rect.height - panel.frame.height) < 1
-            canvas.cornerRadius = fillsScreen ? 0 : cornerRadius
-            canvas.cutout = WindowFocusGeometry.cutout(window: rect, screen: panel.frame)
+            canvas.cornerRadius = cornerRadius
+            canvas.cutout = nil
+            canvas.regions = regions.filter { $0.rect.intersects(panel.frame) }.map { $0.local(to: panel.frame) }
             canvas.updateShape()
             if !panel.isVisible { panel.orderFrontRegardless() }
+        }
+        if let anchor = regions.first?.rect,
+           let screen = NSScreen.screens.max(by: { $0.frame.intersection(anchor).area < $1.frame.intersection(anchor).area }),
+           let controls {
+            let frame = FocusControlsPlacement.frame(window: anchor, screen: screen.visibleFrame)
+            if controls.frame != frame { controls.setFrame(frame, display: true) }
+            if !controls.isVisible { controls.orderFrontRegardless() }
         }
     }
     private func installMouseMonitoring() {
@@ -145,7 +245,8 @@ final class WindowFocusController: ObservableObject {
         if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in self?.mouseEvent(event); return event }) { mouseMonitors.append(local) }
     }
     private func mouseEvent(_ event: NSEvent) {
-        guard active else { return }
+        guard active, event.window !== controls else { return }
+        if addingWindow && event.type == .leftMouseUp { pendingAdd = true }
         requestRefresh(reselect: event.type == .leftMouseDown || event.type == .leftMouseUp)
         if event.type == .leftMouseUp {
             dragTimer?.invalidate(); dragTimer = nil
@@ -222,7 +323,8 @@ final class WindowFocusController: ObservableObject {
         return WindowFocusGeometry.appKitRect(CGRect(origin: point, size: size), primaryHeight: primary.frame.height)
     }
     deinit {
-        timer?.invalidate(); dragTimer?.invalidate(); scheduledRefresh?.cancel()
+        timer?.invalidate(); dragTimer?.invalidate(); cycleTimer?.invalidate(); scheduledRefresh?.cancel()
+        controls?.orderOut(nil)
         mouseMonitors.forEach { NSEvent.removeMonitor($0) }
         clearTracking()
         for panel in panels { panel.orderOut(nil) }
@@ -235,9 +337,14 @@ final class WindowFocusController: ObservableObject {
 
 final class WindowFocusCanvas: NSView {
     var cutout: CGRect?
+    var regions: [FocusRegion] = []
+    private var resting = false
+    private let glass = CAShapeLayer()
+    private let glassHalo = CAShapeLayer()
+    private let glassClips = [CAShapeLayer(), CAShapeLayer()]
     var cornerRadius: CGFloat = 12
     var opacity: Double {
-        didSet { needsDisplay = true; updateShape() }
+        didSet { needsDisplay = true; updateShape(); configureBreathing() }
     }
     override var wantsUpdateLayer: Bool { true }
     override func makeBackingLayer() -> CALayer { CAShapeLayer() }
@@ -245,18 +352,79 @@ final class WindowFocusCanvas: NSView {
         self.opacity = min(1, max(0, opacity))
         super.init(frame: frame)
         wantsLayer = true
+        for (index, style) in [(glassHalo, CGFloat(4), CGFloat(0.12)), (glass, CGFloat(0.9), CGFloat(0.75))].enumerated() {
+            let (line, width, alpha) = style
+            line.mask = glassClips[index]
+            line.fillColor = nil; line.strokeColor = NSColor.white.withAlphaComponent(alpha).cgColor
+            line.lineWidth = width; line.lineCap = .round; line.lineJoin = .round
+            layer?.addSublayer(line)
+        }
         setAccessibilityElement(false)
         updateShape()
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+    private var effectiveRegions: [FocusRegion] {
+        regions.isEmpty ? cutout.map { [FocusRegion(rect: $0)] } ?? [] : regions
+    }
+    private func radius(for rect: CGRect) -> CGFloat {
+        abs(rect.minX - bounds.minX) < 1 && abs(rect.minY - bounds.minY) < 1 && abs(rect.width - bounds.width) < 1 && abs(rect.height - bounds.height) < 1 ? 0 : cornerRadius
+    }
+    func visiblePath() -> CGPath? {
+        var result: CGPath?
+        for region in effectiveRegions {
+            let path = region.visiblePath(radius: radius(for: region.rect))
+            result = result.map { $0.union(path) } ?? path
+        }
+        return result
+    }
     func maskPath() -> CGPath {
         let path = CGMutablePath()
         path.addRect(bounds)
-        if let cutout {
-            let radius = min(max(0, cornerRadius), min(cutout.width, cutout.height) / 2)
-            path.addRoundedRect(in: cutout, cornerWidth: radius, cornerHeight: radius)
-        }
+        if let holes = visiblePath() { path.addPath(holes) }
         return path
+    }
+    private func cornerPath() -> CGPath {
+        let result = CGMutablePath()
+        for region in effectiveRegions {
+            let rect = region.rect.insetBy(dx: 0.8, dy: 0.8)
+            let length = min(28, min(rect.width, rect.height) / 3)
+            guard length > 0 else { continue }
+            let radius = min(max(0, radius(for: region.rect) - 0.8), length)
+            let corner = CGMutablePath()
+            corner.move(to: CGPoint(x: length, y: 0))
+            if radius > 0 {
+                corner.addLine(to: CGPoint(x: radius, y: 0))
+                corner.addArc(tangent1End: .zero, tangent2End: CGPoint(x: 0, y: length), radius: radius)
+            } else { corner.addLine(to: .zero) }
+            corner.addLine(to: CGPoint(x: 0, y: length))
+            let regionCorners = CGMutablePath()
+            for (x, y, sx, sy) in [(rect.minX, rect.minY, CGFloat(1), CGFloat(1)), (rect.maxX, rect.minY, -1, 1), (rect.minX, rect.maxY, 1, -1), (rect.maxX, rect.maxY, -1, -1)] {
+                let transform = CGAffineTransform(a: sx, b: 0, c: 0, d: sy, tx: x, ty: y)
+                regionCorners.addPath(corner, transform: transform)
+            }
+            result.addPath(regionCorners.lineIntersection(region.visiblePath(radius: self.radius(for: region.rect))))
+        }
+        return result
+    }
+    func setResting(_ value: Bool) {
+        guard resting != value else { return }
+        resting = value
+        configureBreathing()
+    }
+    private func configureBreathing() {
+        guard let shape = layer as? CAShapeLayer else { return }
+        shape.removeAnimation(forKey: "restBreathing")
+        let alpha = min(1, max(0, opacity))
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        shape.fillColor = NSColor.black.withAlphaComponent(resting && NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? alpha * 0.45 : alpha).cgColor
+        CATransaction.commit()
+        guard resting, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        let breath = CABasicAnimation(keyPath: "fillColor")
+        breath.fromValue = NSColor.black.withAlphaComponent(alpha).cgColor
+        breath.toValue = NSColor.black.withAlphaComponent(alpha * 0.22).cgColor
+        breath.duration = 4; breath.autoreverses = true; breath.repeatCount = .infinity
+        breath.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        shape.add(breath, forKey: "restBreathing")
     }
     func updateShape() {
         guard let shape = layer as? CAShapeLayer else { return }
@@ -264,8 +432,18 @@ final class WindowFocusCanvas: NSView {
         CATransaction.setDisableActions(true)
         shape.masksToBounds = true
         shape.fillRule = .evenOdd
-        shape.fillColor = NSColor.black.withAlphaComponent(min(1, max(0, opacity))).cgColor
-        shape.path = maskPath()
+        let alpha = min(1, max(0, opacity))
+        shape.fillColor = NSColor.black.withAlphaComponent(resting && NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? alpha * 0.45 : alpha).cgColor
+        let visible = visiblePath()
+        let mask = CGMutablePath()
+        mask.addRect(bounds)
+        if let visible { mask.addPath(visible) }
+        shape.path = mask
+        let corners = cornerPath()
+        for (line, clipping) in zip([glassHalo, glass], glassClips) {
+            line.frame = bounds; line.path = corners
+            clipping.frame = bounds; clipping.path = visible; clipping.fillColor = NSColor.white.cgColor
+        }
         CATransaction.commit()
     }
     override func updateLayer() { updateShape() }
@@ -279,4 +457,8 @@ final class WindowFocusCanvas: NSView {
         context.addPath(maskPath())
         context.drawPath(using: .eoFill)
     }
+}
+
+private extension CGRect {
+    var area: CGFloat { isNull || isEmpty ? 0 : width * height }
 }
