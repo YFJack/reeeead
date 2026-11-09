@@ -156,6 +156,11 @@ struct Preferences: Codable {
     }
     var dimOpacity = 0.62
     var windowFocusOpacity: Double? = nil
+    var windowFocusCornerRadius: Double? = nil
+    var focusCornerRadius: Double {
+        get { min(24, max(0, windowFocusCornerRadius ?? 12)) }
+        set { windowFocusCornerRadius = min(24, max(0, newValue)) }
+    }
     var focusOpacity: Double {
         get { min(1, max(0, windowFocusOpacity ?? dimOpacity)) }
         set { windowFocusOpacity = min(1, max(0, newValue)) }

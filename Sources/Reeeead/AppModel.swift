@@ -9,6 +9,7 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
         didSet {
             preferences.save()
             if oldValue.focusOpacity != preferences.focusOpacity { focus.updateOpacity(preferences.focusOpacity) }
+            if oldValue.focusCornerRadius != preferences.focusCornerRadius { focus.updateCornerRadius(preferences.focusCornerRadius) }
         }
     }
     @Published var language = Localization.language {
@@ -87,7 +88,7 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
             return
         }
         ruler.stop()
-        focus.start(opacity: preferences.focusOpacity)
+        focus.start(opacity: preferences.focusOpacity, cornerRadius: preferences.focusCornerRadius)
     }
     func refreshPermission() {
         let changed = permission != SelectionReader.permitted

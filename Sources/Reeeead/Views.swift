@@ -266,8 +266,17 @@ struct WindowFocusControl: View {
                             Button { showingAppearance = false } label: { Image(systemName: "xmark") }
                                 .buttonStyle(.plain).accessibilityLabel(L("关闭"))
                         }
-                        FocusOpacityPreview(opacity: model.preferences.focusOpacity)
+                        FocusOpacityPreview(opacity: model.preferences.focusOpacity, cornerRadius: model.preferences.focusCornerRadius / 2)
                         FocusOpacityControl(model: model)
+                        VStack(spacing: 7) {
+                            HStack {
+                                Text(L("窗口圆角")).font(.system(size: 12))
+                                Spacer()
+                                Text("\(Int(model.preferences.focusCornerRadius)) pt").font(.system(size: 12, design: .monospaced))
+                            }
+                            Slider(value: $model.preferences.focusCornerRadius, in: 0...24, step: 1)
+                                .tint(Ink.dark).accessibilityLabel(L("窗口圆角"))
+                        }
                         Text(L("拖动即生效，下次自动记住。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
                     }.padding(18).frame(width: 280).background(Ink.paper).foregroundStyle(Ink.dark)
                 }
@@ -299,6 +308,7 @@ struct FocusOpacityControl: View {
 
 struct FocusOpacityPreview: View {
     let opacity: Double
+    var cornerRadius: Double = 6
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 9).fill(Color(hex: 0xE4E2DC))
@@ -313,7 +323,7 @@ struct FocusOpacityPreview: View {
                 RoundedRectangle(cornerRadius: 1).fill(Ink.muted.opacity(0.4)).frame(width: 68, height: 3)
                 RoundedRectangle(cornerRadius: 1).fill(Ink.muted.opacity(0.25)).frame(width: 85, height: 3)
                 RoundedRectangle(cornerRadius: 1).fill(Ink.muted.opacity(0.25)).frame(width: 57, height: 3)
-            }.padding(12).frame(width: 116, height: 76).background(Ink.paper, in: RoundedRectangle(cornerRadius: 6))
+            }.padding(12).frame(width: 116, height: 76).background(Ink.paper, in: RoundedRectangle(cornerRadius: cornerRadius))
         }.frame(height: 110).accessibilityElement(children: .ignore).accessibilityLabel(L("窗口聚焦预览"))
     }
 }

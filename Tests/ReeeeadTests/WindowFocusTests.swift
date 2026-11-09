@@ -1,6 +1,7 @@
 import XCTest
 import AppKit
 import Carbon
+import QuartzCore
 @testable import Reeeead
 
 final class WindowFocusTests: XCTestCase {
@@ -45,8 +46,8 @@ final class WindowFocusTests: XCTestCase {
         XCTAssertNil(WindowFocusGeometry.cutout(window: upperWindow, screen: primary))
         let left = CGRect(x: -1920, y: 0, width: 1920, height: 1080)
         let spanning = CGRect(x: -200, y: 100, width: 700, height: 500)
-        XCTAssertEqual(WindowFocusGeometry.cutout(window: spanning, screen: left), CGRect(x: 1720, y: 100, width: 200, height: 500))
-        XCTAssertEqual(WindowFocusGeometry.cutout(window: spanning, screen: primary), CGRect(x: 0, y: 100, width: 500, height: 500))
+        XCTAssertEqual(WindowFocusGeometry.cutout(window: spanning, screen: left), CGRect(x: 1720, y: 100, width: 700, height: 500))
+        XCTAssertEqual(WindowFocusGeometry.cutout(window: spanning, screen: primary), CGRect(x: -200, y: 100, width: 700, height: 500))
     }
 
     func testInvalidWindowsNeverProduceAHole() {
@@ -109,5 +110,43 @@ final class WindowFocusTests: XCTestCase {
             XCTAssertEqual(try XCTUnwrap(bitmap.colorAt(x: 5, y: 5)).alphaComponent, opacity, accuracy: 0.01)
             XCTAssertEqual(try XCTUnwrap(bitmap.colorAt(x: 50, y: 50)).alphaComponent, 0, accuracy: 0.01)
         }
+    }
+    @MainActor func testRoundedHoleDoesNotLeakAtCornersOrRoundDisplaySeams() throws {
+        let canvas = WindowFocusCanvas(frame: CGRect(x: 0, y: 0, width: 100, height: 100), opacity: 1)
+        canvas.cutout = CGRect(x: 20, y: 20, width: 60, height: 60)
+        canvas.cornerRadius = 12
+        let path = canvas.maskPath()
+        XCTAssertTrue(path.contains(CGPoint(x: 21, y: 21), using: .evenOdd))
+        XCTAssertFalse(path.contains(CGPoint(x: 32, y: 21), using: .evenOdd))
+        XCTAssertFalse(path.contains(CGPoint(x: 50, y: 50), using: .evenOdd))
+        canvas.cutout = WindowFocusGeometry.cutout(window: CGRect(x: -80, y: 20, width: 160, height: 60), screen: canvas.bounds)
+        XCTAssertFalse(canvas.maskPath().contains(CGPoint(x: 1, y: 21), using: .evenOdd), "A display edge is not a window corner")
+        canvas.cornerRadius = 0
+        canvas.cutout = canvas.bounds
+        XCTAssertFalse(canvas.maskPath().contains(CGPoint(x: 1, y: 1), using: .evenOdd))
+    }
+
+    @MainActor func testLiveLayerUsesCurrentPathWithoutTrailingAnimation() throws {
+        let canvas = WindowFocusCanvas(frame: CGRect(x: 0, y: 0, width: 100, height: 100), opacity: 0.6)
+        canvas.cutout = CGRect(x: 20, y: 20, width: 40, height: 40)
+        canvas.updateShape()
+        let layer = try XCTUnwrap(canvas.layer as? CAShapeLayer)
+        XCTAssertEqual(layer.fillRule, .evenOdd)
+        XCTAssertTrue(layer.masksToBounds)
+        canvas.cutout = CGRect(x: 60, y: 20, width: 40, height: 40)
+        canvas.updateShape()
+        XCTAssertTrue(try XCTUnwrap(layer.path).contains(CGPoint(x: 40, y: 40), using: .evenOdd))
+        XCTAssertFalse(try XCTUnwrap(layer.path).contains(CGPoint(x: 80, y: 40), using: .evenOdd))
+        XCTAssertTrue(layer.animationKeys()?.isEmpty ?? true)
+    }
+
+    func testLegacyCornerDefaultAndCustomRadiusPersistence() throws {
+        let preferences = Preferences()
+        XCTAssertEqual(preferences.focusCornerRadius, 12)
+        var custom = preferences
+        custom.focusCornerRadius = 0
+        XCTAssertEqual(try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(custom)).focusCornerRadius, 0)
+        custom.focusCornerRadius = 24
+        XCTAssertEqual(try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(custom)).focusCornerRadius, 24)
     }
 }
