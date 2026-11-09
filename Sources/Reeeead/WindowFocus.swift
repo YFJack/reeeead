@@ -60,6 +60,11 @@ final class WindowFocusController: ObservableObject {
         RunLoop.main.add(timer, forMode: .common)
         onMessage?(L("窗口聚焦已开启。自动跟随当前窗口，Esc 退出。"))
     }
+    func updateOpacity(_ opacity: Double) {
+        for panel in panels {
+            (panel.contentView as? WindowFocusCanvas)?.opacity = opacity
+        }
+    }
     func stop() {
         timer?.invalidate(); timer = nil
         for panel in panels { panel.orderOut(nil); panel.contentView = nil }
@@ -124,9 +129,11 @@ final class WindowFocusController: ObservableObject {
 
 final class WindowFocusCanvas: NSView {
     var cutout: CGRect?
-    let opacity: Double
+    var opacity: Double {
+        didSet { needsDisplay = true }
+    }
     init(frame: NSRect, opacity: Double) {
-        self.opacity = min(0.9, max(0.2, opacity))
+        self.opacity = min(1, max(0, opacity))
         super.init(frame: frame)
         setAccessibilityElement(false)
     }
@@ -136,7 +143,7 @@ final class WindowFocusCanvas: NSView {
         let path = NSBezierPath(rect: bounds)
         if let cutout { path.appendRect(cutout) }
         path.windingRule = .evenOdd
-        NSColor.black.withAlphaComponent(opacity).setFill()
+        NSColor.black.withAlphaComponent(min(1, max(0, opacity))).setFill()
         path.fill()
     }
 }

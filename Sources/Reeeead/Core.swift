@@ -155,6 +155,11 @@ struct Preferences: Codable {
         set { windowFocusShortcut = newValue }
     }
     var dimOpacity = 0.62
+    var windowFocusOpacity: Double? = nil
+    var focusOpacity: Double {
+        get { min(1, max(0, windowFocusOpacity ?? dimOpacity)) }
+        set { windowFocusOpacity = min(1, max(0, newValue)) }
+    }
     var lineWidth = 2.0
     var lineColor = "sage"
     var copyFallback = true

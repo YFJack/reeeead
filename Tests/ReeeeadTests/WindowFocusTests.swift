@@ -72,4 +72,42 @@ final class WindowFocusTests: XCTestCase {
         canvas.draw(canvas.bounds)
         XCTAssertEqual(try XCTUnwrap(bitmap.colorAt(x: 50, y: 50)).alphaComponent, 0.62, accuracy: 0.01)
     }
+    func testFocusOpacityPersistsFullRangeWithoutChangingRuler() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "ReeeeadOpacityTest"))
+        defer { defaults.removePersistentDomain(forName: "ReeeeadOpacityTest") }
+        var preferences = Preferences()
+        preferences.dimOpacity = 0.62
+        XCTAssertEqual(preferences.focusOpacity, 0.62)
+        for opacity in [0.0, 0.01, 0.5, 0.99, 1.0] {
+            preferences.focusOpacity = opacity
+            preferences.save(to: defaults)
+            let restored = Preferences.load(from: defaults)
+            XCTAssertEqual(restored.focusOpacity, opacity, accuracy: 0.0001)
+            XCTAssertEqual(restored.dimOpacity, 0.62)
+        }
+    }
+
+    @MainActor func testOpacityChangesRepaintAndAllowFullyClearOrOpaque() throws {
+        let canvas = WindowFocusCanvas(frame: CGRect(x: 0, y: 0, width: 100, height: 100), opacity: 1)
+        canvas.cutout = CGRect(x: 25, y: 25, width: 50, height: 50)
+        let panel = RulerPanel(screenFrame: canvas.frame)
+        panel.ignoresMouseEvents = true
+        panel.contentView = canvas
+        panel.orderFrontRegardless()
+        defer { panel.orderOut(nil); panel.contentView = nil }
+        let bitmap = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 100, pixelsHigh: 100,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSGraphicsContext.current = try XCTUnwrap(NSGraphicsContext(bitmapImageRep: bitmap))
+        for opacity in [1.0, 0.0, 0.37] {
+            canvas.needsDisplay = false
+            canvas.opacity = opacity
+            XCTAssertTrue(canvas.needsDisplay)
+            canvas.draw(canvas.bounds)
+            XCTAssertEqual(try XCTUnwrap(bitmap.colorAt(x: 5, y: 5)).alphaComponent, opacity, accuracy: 0.01)
+            XCTAssertEqual(try XCTUnwrap(bitmap.colorAt(x: 50, y: 50)).alphaComponent, 0, accuracy: 0.01)
+        }
+    }
 }

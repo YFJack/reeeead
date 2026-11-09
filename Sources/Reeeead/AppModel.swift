@@ -5,7 +5,12 @@ import AVFoundation
 enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
 
 @MainActor final class AppModel: ObservableObject {
-    @Published var preferences = Preferences.load() { didSet { preferences.save() } }
+    @Published var preferences = Preferences.load() {
+        didSet {
+            preferences.save()
+            if oldValue.focusOpacity != preferences.focusOpacity { focus.updateOpacity(preferences.focusOpacity) }
+        }
+    }
     @Published var language = Localization.language {
         didSet {
             let wasDefault = sample == Localization.text("选中文字，按下快捷键，就能听到朗读。", language: oldValue)
@@ -82,7 +87,7 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
             return
         }
         ruler.stop()
-        focus.start(opacity: preferences.dimOpacity)
+        focus.start(opacity: preferences.focusOpacity)
     }
     func refreshPermission() {
         let changed = permission != SelectionReader.permitted

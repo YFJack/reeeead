@@ -247,6 +247,7 @@ struct VoiceSettings: View {
 struct WindowFocusControl: View {
     @ObservedObject var model: AppModel
     @ObservedObject var focus: WindowFocusController
+    @State private var showingAppearance = false
     var body: some View {
         HStack(spacing: 10) {
             Button { model.toggleFocus() } label: {
@@ -254,7 +255,65 @@ struct WindowFocusControl: View {
                     .font(.system(size: 12, weight: .medium))
             }.buttonStyle(.plain).help(focus.active ? L("收起窗口聚焦") : L("开启窗口聚焦"))
             Spacer()
+            Button { showingAppearance.toggle() } label: {
+                Image(systemName: "slider.horizontal.3").font(.system(size: 13)).frame(width: 26, height: 26)
+            }.buttonStyle(.plain).help(L("调整透明度")).accessibilityLabel(L("调整透明度"))
+                .popover(isPresented: $showingAppearance) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text(L("窗口聚焦")).font(.system(size: 14, weight: .semibold))
+                            Spacer()
+                            Button { showingAppearance = false } label: { Image(systemName: "xmark") }
+                                .buttonStyle(.plain).accessibilityLabel(L("关闭"))
+                        }
+                        FocusOpacityPreview(opacity: model.preferences.focusOpacity)
+                        FocusOpacityControl(model: model)
+                        Text(L("拖动即生效，下次自动记住。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
+                    }.padding(18).frame(width: 280).background(Ink.paper).foregroundStyle(Ink.dark)
+                }
             Button { model.beginRecording(3) } label: { KeyCap(text: model.preferences.focusShortcut.display) }.buttonStyle(.plain).help(L("修改快捷键"))
         }.foregroundStyle(focus.active ? Ink.dark : Ink.muted)
+    }
+}
+
+struct FocusOpacityControl: View {
+    @ObservedObject var model: AppModel
+    private var transparency: Binding<Double> {
+        Binding(get: { 1 - model.preferences.focusOpacity }, set: { model.preferences.focusOpacity = 1 - $0 })
+    }
+    var body: some View {
+        VStack(spacing: 7) {
+            HStack {
+                Text(L("透明度")).font(.system(size: 12))
+                Spacer()
+                Text("\(Int((transparency.wrappedValue * 100).rounded()))%")
+                    .font(.system(size: 12, design: .monospaced)).monospacedDigit()
+            }
+            Slider(value: transparency, in: 0...1, step: 0.01).tint(Ink.dark).accessibilityLabel(L("窗口外透明度"))
+            HStack {
+                Text(L("不透明")); Spacer(); Text(L("完全透明"))
+            }.font(.system(size: 10)).foregroundStyle(Ink.muted)
+        }
+    }
+}
+
+struct FocusOpacityPreview: View {
+    let opacity: Double
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 9).fill(Color(hex: 0xE4E2DC))
+            HStack(spacing: 8) {
+                ForEach(0..<3) { _ in
+                    RoundedRectangle(cornerRadius: 4).fill(.white.opacity(0.7)).frame(width: 58, height: 65)
+                }
+            }
+            RoundedRectangle(cornerRadius: 9).fill(.black.opacity(opacity))
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 3) { ForEach(0..<3) { _ in Circle().fill(Ink.faint).frame(width: 4, height: 4) } }
+                RoundedRectangle(cornerRadius: 1).fill(Ink.muted.opacity(0.4)).frame(width: 68, height: 3)
+                RoundedRectangle(cornerRadius: 1).fill(Ink.muted.opacity(0.25)).frame(width: 85, height: 3)
+                RoundedRectangle(cornerRadius: 1).fill(Ink.muted.opacity(0.25)).frame(width: 57, height: 3)
+            }.padding(12).frame(width: 116, height: 76).background(Ink.paper, in: RoundedRectangle(cornerRadius: 6))
+        }.frame(height: 110).accessibilityElement(children: .ignore).accessibilityLabel(L("窗口聚焦预览"))
     }
 }

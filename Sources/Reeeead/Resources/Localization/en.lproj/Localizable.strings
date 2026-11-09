@@ -188,3 +188,17 @@
 "窗口聚焦快捷键与已有功能重复，请换一组。" = "Window Focus conflicts with an existing shortcut. Choose another combination.";
 
 "不同功能不能使用同一组快捷键，请换一组。" = "Actions cannot share the same shortcut. Choose another combination.";
+
+"调整透明度" = "Adjust transparency";
+
+"透明度" = "Transparency";
+
+"窗口外透明度" = "Surrounding transparency";
+
+"不透明" = "Opaque";
+
+"完全透明" = "Clear";
+
+"拖动即生效，下次自动记住。" = "Updates live. Remembers your setting.";
+
+"窗口聚焦预览" = "Window Focus preview";

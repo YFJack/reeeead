@@ -73,7 +73,7 @@ MiniMax defaults: `https://api.minimax.cn/v1/t2a_v2`, model `speech-2.8-hd`, voi
 
 ### Window Focus
 
-Press **Left Shift + Esc** to keep the frontmost window clear and dim everything outside it, across connected displays. The clear area follows window moves, resizes and switches; clicking and scrolling work normally. Press the shortcut again or plain Esc to stop. The shortcut is editable in Settings → Shortcuts, and dimming uses the reading band's opacity setting. Window Focus and the reading band are mutually exclusive. It needs Accessibility access; if the current window cannot be read, the mask hides instead of leaving the screen dark. Display changes and sleep close it.
+Press **Left Shift + Esc** to keep the frontmost window clear and dim everything outside it, across connected displays. The clear area follows window moves, resizes and switches; clicking and scrolling work normally. Press the shortcut again or plain Esc to stop. The shortcut is editable in Settings → Shortcuts, and the appearance button beside Window Focus opens a compact preview and transparency slider (0–100%, live and saved independently of the reading band). While active, the menu bar also offers the slider. Window Focus and the reading band are mutually exclusive. It needs Accessibility access; if the current window cannot be read, the mask hides instead of leaving the screen dark. Display changes and sleep close it.
 
 ### Mouse buttons and displays
 

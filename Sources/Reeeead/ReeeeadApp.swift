@@ -84,6 +84,13 @@ import Combine
         if model.speech.state == .speaking || model.speech.state == .paused { add(menu, model.speech.state == .paused ? L("继续朗读") : L("暂停朗读"), #selector(pauseSpeech)) }
         add(menu, model.ruler.active ? L("收起标尺") : L("开启阅读标尺  %@", String(model.preferences.rulerShortcut.display)), #selector(toggleRuler))
         add(menu, model.focus.active ? L("收起窗口聚焦") : L("聚焦当前窗口  %@", model.preferences.focusShortcut.display), #selector(toggleFocus))
+        if model.focus.active {
+            let appearance = NSMenuItem()
+            let control = NSHostingView(rootView: FocusOpacityControl(model: model).padding(12).frame(width: 260))
+            control.frame = NSRect(x: 0, y: 0, width: 260, height: 90)
+            appearance.view = control
+            menu.addItem(appearance)
+        }
         menu.addItem(.separator())
         add(menu, L("设置与权限…"), #selector(showSettings))
         add(menu, L("退出 Reeeead"), #selector(quit))
