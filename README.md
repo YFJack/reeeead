@@ -71,6 +71,10 @@ The compatible endpoint must accept `POST` with `model`, `voice`, `input`, `spee
 
 MiniMax defaults: `https://api.minimax.cn/v1/t2a_v2`, model `speech-2.8-hd`, voice `male-qn-qingse`. Settings are editable. The promotional film's calm narrator is a separate production setting, not a new in-app preset.
 
+### Window Focus
+
+Press **Left Shift + Esc** to keep the frontmost window clear and dim everything outside it, across connected displays. The clear area follows window moves, resizes and switches; clicking and scrolling work normally. Press the shortcut again or plain Esc to stop. The shortcut is editable in Settings → Shortcuts, and dimming uses the reading band's opacity setting. Window Focus and the reading band are mutually exclusive. It needs Accessibility access; if the current window cannot be read, the mask hides instead of leaving the screen dark. Display changes and sleep close it.
+
 ### Mouse buttons and displays
 
 Open Settings → Shortcuts and press the shortcut you want; release to save. Letters, function keys, arrows, navigation keys, the number pad, middle and additional mouse buttons are supported. Left/right mouse buttons can be combined with modifiers; plain left/right clicks remain available for normal interaction. Escape cancels recording. Newly recorded Shift combinations distinguish the left and right keys, including Shift + mouse buttons. Existing generic Shift bindings keep accepting either side until re-recorded. If a driver turns a side button into a keyboard macro, record that keyboard shortcut or restore ordinary button behavior in the driver.

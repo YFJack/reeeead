@@ -33,6 +33,7 @@ struct Shortcut: Codable, Equatable {
     var shiftSide: ShiftSide? = nil // Missing in old preferences: either Shift remains valid.
     static let read = Shortcut(keyCode: 15, modifiers: UInt32(controlKey | optionKey), label: "R")
     static let ruler = Shortcut(keyCode: 37, modifiers: UInt32(controlKey | optionKey), label: "L")
+    static let focus = Shortcut(keyCode: 53, modifiers: UInt32(shiftKey), label: "⎋", shiftSide: .left)
     var display: String {
         var s = ""
         if modifiers & UInt32(controlKey) != 0 { s += "⌃" }
@@ -147,6 +148,12 @@ struct Preferences: Codable {
     var voice = "alloy"
     var readShortcut = Shortcut.read
     var rulerShortcut = Shortcut.ruler
+    // Optional storage preserves decoding of existing preferences.
+    var windowFocusShortcut: Shortcut? = nil
+    var focusShortcut: Shortcut {
+        get { windowFocusShortcut ?? .focus }
+        set { windowFocusShortcut = newValue }
+    }
     var dimOpacity = 0.62
     var lineWidth = 2.0
     var lineColor = "sage"

@@ -18,6 +18,10 @@ final class HotKeyCenter {
     private(set) var registrationError = ""
     var onRead: (() -> Void)?
     var onRuler: (() -> Void)?
+    var onFocus: (() -> Void)?
+    var onEscape: (() -> Bool)?
+    private var escapeConsumed = false
+    func enableEscapeHandling() -> Bool { installKeyboardTap() }
     private let signature: OSType = 0x4C554D41
 
     init() {
@@ -30,6 +34,7 @@ final class HotKeyCenter {
             let center = Unmanaged<HotKeyCenter>.fromOpaque(context).takeUnretainedValue()
             if id.id == 1 { center.onRead?() }
             if id.id == 2 { center.onRuler?() }
+            if id.id == 3 { center.onFocus?() }
             return noErr
         }, 1, &spec, Unmanaged.passUnretained(self).toOpaque(), &handler)
     }
@@ -83,15 +88,26 @@ final class HotKeyCenter {
                     return Unmanaged.passUnretained(event)
                 }
                 guard type == .keyDown || type == .keyUp else { return Unmanaged.passUnretained(event) }
+                if event.getIntegerValueField(.keyboardEventKeycode) == 53 {
+                    if center.escapeConsumed {
+                        if type == .keyUp { center.escapeConsumed = false }
+                        return nil
+                    }
+                }
                 let decision = center.keyboardRouter.route(keyCode: UInt32(event.getIntegerValueField(.keyboardEventKeycode)),
                     flags: event.flags, down: type == .keyDown, repeatKey: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
                     bindings: center.keyboardBindings)
+                if !decision.consume && type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 53 && Shortcut.modifiers(from: event.flags) == 0 && center.onEscape?() == true {
+                    center.escapeConsumed = true
+                    return nil
+                }
                 if let action = decision.action {
                     let generation = center.generation
                     DispatchQueue.main.async { [weak center] in
                         guard let center, center.generation == generation else { return }
                         if action == 1 { center.onRead?() }
                         if action == 2 { center.onRuler?() }
+                        if action == 3 { center.onFocus?() }
                     }
                 }
                 return decision.consume ? nil : Unmanaged.passUnretained(event)
@@ -131,6 +147,7 @@ final class HotKeyCenter {
                     guard let center, center.generation == generation else { return }
                     if decision.action == 1 { center.onRead?() }
                     else if decision.action == 2 { center.onRuler?() }
+                    else if decision.action == 3 { center.onFocus?() }
                 }
             }
             return decision.consume ? nil : Unmanaged.passUnretained(event)
@@ -149,6 +166,7 @@ final class HotKeyCenter {
         mouseRouter = MouseShortcutRouter()
         keyboardBindings.removeAll()
         keyboardRouter = KeyboardShortcutRouter()
+        escapeConsumed = false
         if let keyboardTap { CGEvent.tapEnable(tap: keyboardTap, enable: false); CFMachPortInvalidate(keyboardTap) }
         if let keyboardSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), keyboardSource, .commonModes) }
         keyboardTap = nil; keyboardSource = nil

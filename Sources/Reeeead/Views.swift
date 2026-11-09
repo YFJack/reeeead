@@ -85,11 +85,12 @@ struct MainView: View {
                     RulerPreview(opacity: model.preferences.dimOpacity, width: model.preferences.lineWidth, amber: model.preferences.lineColor == "amber")
                     HStack {
                         Text(L("点击两次，固定上下边界。")).font(.system(size: 12)).fixedSize(horizontal: false, vertical: true).foregroundStyle(Ink.muted); Spacer()
-                        Button(ruler.active ? L("收起标尺") : L("开启标尺")) { ruler.toggle(preferences: model.preferences) }.buttonStyle(ReaderButtonStyle(primary: true))
+                        Button(ruler.active ? L("收起标尺") : L("开启标尺")) { model.toggleRuler() }.buttonStyle(ReaderButtonStyle(primary: true))
                     }
                 }.padding(16).background(Ink.card, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Ink.faint))
                 shortcutHint(L("固定后照常滚动，Esc 退出"), key: model.preferences.rulerShortcut.display, id: 2)
             }
+            WindowFocusControl(model: model, focus: model.focus)
             if !model.permission {
                 HStack(spacing: 9) {
                     Image(systemName: "hand.raised").font(.system(size: 12))
@@ -130,7 +131,8 @@ struct MainView: View {
             Divider()
             SettingGroup(title: L("快捷键")) {
                 shortcutHint(L("选区朗读 / 停止"), key: model.preferences.readShortcut.display, id: 1); Divider()
-                shortcutHint(L("开启 / 收起标尺"), key: model.preferences.rulerShortcut.display, id: 2)
+                shortcutHint(L("开启 / 收起标尺"), key: model.preferences.rulerShortcut.display, id: 2); Divider()
+                shortcutHint(L("开启 / 收起窗口聚焦"), key: model.preferences.focusShortcut.display, id: 3)
             }
             Divider()
             SettingGroup(title: L("权限")) {
@@ -239,5 +241,20 @@ struct VoiceSettings: View {
     }
     private func input(_ label: String, text: Binding<String>, prompt: String) -> some View {
         SettingGroup(title: label) { TextField(prompt, text: text).modifier(QuietField()).accessibilityLabel(label) }
+    }
+}
+
+struct WindowFocusControl: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var focus: WindowFocusController
+    var body: some View {
+        HStack(spacing: 10) {
+            Button { model.toggleFocus() } label: {
+                Label(L("窗口聚焦"), systemImage: focus.active ? "rectangle.inset.filled" : "rectangle")
+                    .font(.system(size: 12, weight: .medium))
+            }.buttonStyle(.plain).help(focus.active ? L("收起窗口聚焦") : L("开启窗口聚焦"))
+            Spacer()
+            Button { model.beginRecording(3) } label: { KeyCap(text: model.preferences.focusShortcut.display) }.buttonStyle(.plain).help(L("修改快捷键"))
+        }.foregroundStyle(focus.active ? Ink.dark : Ink.muted)
     }
 }

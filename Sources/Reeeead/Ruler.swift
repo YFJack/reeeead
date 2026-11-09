@@ -83,7 +83,7 @@ final class RulerController: ObservableObject {
                 if let tap = controller.tap { CGEvent.tapEnable(tap: tap, enable: true) }
                 return Unmanaged.passUnretained(event)
             }
-            if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 53 && controller.active {
+            if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 53 && Shortcut.modifiers(from: event.flags) == 0 && controller.active {
                 DispatchQueue.main.async { controller.stop() }
                 return nil
             }

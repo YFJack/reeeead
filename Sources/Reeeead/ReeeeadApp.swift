@@ -47,7 +47,7 @@ import Combine
         subscription = model.speech.$message.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] text in
             guard let self else { return }
             self.statusItem.button?.toolTip = "Reeeead · \(text)"
-            if !NSApp.isActive && !self.model.ruler.active { self.showToast(text) }
+            if !NSApp.isActive && !self.model.ruler.active && !self.model.focus.active { self.showToast(text) }
         }
         languageSubscription = model.$language.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] _ in
             self?.buildMainMenu()
@@ -83,6 +83,7 @@ import Combine
         add(menu, model.speech.busy ? L("停止朗读") : L("朗读选中文字  %@", String(model.preferences.readShortcut.display)), #selector(readSelection))
         if model.speech.state == .speaking || model.speech.state == .paused { add(menu, model.speech.state == .paused ? L("继续朗读") : L("暂停朗读"), #selector(pauseSpeech)) }
         add(menu, model.ruler.active ? L("收起标尺") : L("开启阅读标尺  %@", String(model.preferences.rulerShortcut.display)), #selector(toggleRuler))
+        add(menu, model.focus.active ? L("收起窗口聚焦") : L("聚焦当前窗口  %@", model.preferences.focusShortcut.display), #selector(toggleFocus))
         menu.addItem(.separator())
         add(menu, L("设置与权限…"), #selector(showSettings))
         add(menu, L("退出 Reeeead"), #selector(quit))
@@ -93,13 +94,14 @@ import Combine
     @objc private func showAbout() { NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Reeeead", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "", .credits: NSAttributedString(string: L("开源阅读辅助工具 · MIT License"))]) }
     @objc private func readSelection() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.speech.selection(preferences: self.model.preferences) } }
     @objc private func pauseSpeech() { model.speech.togglePause() }
-    @objc private func toggleRuler() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.ruler.toggle(preferences: self.model.preferences) } }
+    @objc private func toggleRuler() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.toggleRuler() } }
+    @objc private func toggleFocus() { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.model.toggleFocus() } }
     @objc private func quit() { NSApp.terminate(nil) }
     func applicationDidBecomeActive(_ notification: Notification) { model?.refreshPermission() }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showWindow(); return true }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func windowWillClose(_ notification: Notification) { NSApp.setActivationPolicy(.accessory) }
-    func applicationWillTerminate(_ notification: Notification) { model.ruler.stop(); model.speech.stop(); model.hotKeys.unregisterAll(); toastDismiss?.cancel() }
+    func applicationWillTerminate(_ notification: Notification) { model.ruler.stop(); model.focus.stop(); model.speech.stop(); model.hotKeys.unregisterAll(); toastDismiss?.cancel() }
     private func showToast(_ text: String) {
         toastDismiss?.cancel(); toast?.orderOut(nil)
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main else { return }
