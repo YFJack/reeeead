@@ -121,4 +121,4 @@ The [website source](website), [film renderer and script](marketing/video), and 
 
 App code and geometric pixel mark: [MIT](LICENSE). Bundled Space Grotesk and retained OpenDyslexic fonts: [SIL OFL notices](Sources/Reeeead/Resources/Fonts). Generated artwork provenance and usage notes: [ASSETS](docs/ASSETS.md).
 
-Window Focus has a dedicated Settings tab, also opened by its home-screen adjustment button. Set transparency, corner radius, focus duration (1–180 minutes), break duration (1–60 minutes), and daily goal there. Duration changes are saved and apply when you next start the timer; an ongoing cycle is preserved.
+The home screen opens on Window Focus, followed by Read and Ruler as equal tabs. Focus controls and settings are available directly in the first tab. Set transparency, corner radius, focus duration (1–180 minutes), break duration (1–60 minutes), and daily goal there. Duration changes are saved and apply when you next start the timer; an ongoing cycle is preserved.

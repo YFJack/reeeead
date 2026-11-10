@@ -149,3 +149,9 @@ Validation date: 2026-11-01. Build host: Apple Silicon Mac mini, macOS 26.5.2, S
 - Full suite: 68 cases, zero failures, four unchanged opt-in HTTP/audio fixture tests skipped. Added custom duration boundary/count tests, preference migration/clamping/round trips and transient-failure live-window retention safety cases.
 - Mac mini installed UI: dedicated settings rendered, focus duration incremented from 25 to 26 and restored; enabling then closing the ruler left Window Focus enabled. Physical global Escape ordering and MacBook typing/IME flicker remain hardware acceptance items.
 - Final 0.7.0 (16) installed on both configured Macs with bundled hashes and signatures verified. Executable SHA-256: `09e7b3009d42e991679959dce4201be5dbe69e7cd8563032a638565db135fde4`. Final Mac mini launch and settings readback confirmed saved 25/5-minute values.
+
+## 0.7.1 first-class Window Focus home tab
+
+- Home tabs now read Window Focus, Read, Ruler; Window Focus is selected on launch. Its enable control and settings live directly in that tab rather than a secondary row beneath the reader. The existing window size is retained with scrolling for settings.
+- Release build passed with `-j 1`. Installed Mac mini AX and screenshot confirm tab order, default selection, enable control and inline settings. This layout-only change was verified visually without adding redundant unit tests.
+- Both configured Macs installed 0.7.1 (17) with bundled hashes and signatures verified; executable SHA-256: `7a54a84a53e8a4504482a73a2259609b4ff397738ba84aa5275382706e6bd436`. MacBook installation is separate from remote visual acceptance.

@@ -5,13 +5,13 @@ struct MainView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var speech: SpeechEngine
     @ObservedObject var ruler: RulerController
-    @State private var mode = "read"
+    @State private var mode = "focus"
     var body: some View {
         VStack(spacing: 0) {
             header.padding(.horizontal, 28).padding(.top, 22).padding(.bottom, 23)
             if model.page == .home {
                 home.padding(.horizontal, 28)
-                Spacer(minLength: 18)
+                if mode != "focus" { Spacer(minLength: 18) }
             } else {
                 Picker(L("设置分类"), selection: $model.page) { Text(L("语音")).tag(Page.voice); Text(L("标尺")).tag(Page.ruler); Text(L("窗口聚焦")).tag(Page.focus); Text(L("快捷键")).tag(Page.shortcuts) }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 28).padding(.bottom, 22)
                 ScrollView {
@@ -60,8 +60,15 @@ struct MainView: View {
     }
     private var home: some View {
         VStack(alignment: .leading, spacing: 22) {
-            HStack(spacing: 22) { modeButton(L("朗读"), symbol: "speaker.wave.2", value: "read"); modeButton(L("标尺"), symbol: "line.3.horizontal", value: "ruler"); Spacer() }
-            if mode == "read" {
+            HStack(spacing: 22) { modeButton(L("窗口聚焦"), symbol: "rectangle", value: "focus"); modeButton(L("朗读"), symbol: "speaker.wave.2", value: "read"); modeButton(L("标尺"), symbol: "line.3.horizontal", value: "ruler"); Spacer() }
+            if mode == "focus" {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        WindowFocusControl(model: model, focus: model.focus)
+                        WindowFocusSettings(model: model, focus: model.focus)
+                    }.padding(.bottom, 18)
+                }
+            } else if mode == "read" {
                 VStack(spacing: 0) {
                     TextEditor(text: $model.sample).font(.system(size: 16)).lineSpacing(8).scrollContentBackground(.hidden).padding(16).frame(height: 152).accessibilityLabel(L("朗读文字"))
                     HStack(spacing: 12) {
@@ -91,7 +98,6 @@ struct MainView: View {
                 }.padding(16).background(Ink.card, in: RoundedRectangle(cornerRadius: 16)).overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Ink.faint))
                 shortcutHint(L("固定后照常滚动，Esc 退出"), key: model.preferences.rulerShortcut.display, id: 2)
             }
-            WindowFocusControl(model: model, focus: model.focus)
             if !model.permission {
                 HStack(spacing: 9) {
                     Image(systemName: "hand.raised").font(.system(size: 12))
@@ -251,13 +257,10 @@ struct WindowFocusControl: View {
     var body: some View {
         HStack(spacing: 10) {
             Button { model.toggleFocus() } label: {
-                Label(L("窗口聚焦"), systemImage: focus.active ? "rectangle.inset.filled" : "rectangle")
+                Label(focus.active ? L("收起窗口聚焦") : L("开启窗口聚焦"), systemImage: focus.active ? "rectangle.inset.filled" : "rectangle")
                     .font(.system(size: 12, weight: .medium))
             }.buttonStyle(.plain).help(focus.active ? L("收起窗口聚焦") : L("开启窗口聚焦"))
             Spacer()
-            Button { model.page = .focus } label: {
-                Image(systemName: "slider.horizontal.3").font(.system(size: 13)).frame(width: 26, height: 26)
-            }.buttonStyle(.plain).help(L("窗口聚焦设置")).accessibilityLabel(L("窗口聚焦设置"))
             Button { model.beginRecording(3) } label: { KeyCap(text: model.preferences.focusShortcut.display) }.buttonStyle(.plain).help(L("修改快捷键"))
         }.foregroundStyle(focus.active ? Ink.dark : Ink.muted)
     }
