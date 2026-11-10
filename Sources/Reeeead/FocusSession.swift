@@ -177,55 +177,12 @@ struct FocusFloatingControls: View {
       }.padding(5).foregroundStyle(.primary)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
         .overlay(alignment: .topLeading) {
-            TimelineView(.animation(minimumInterval: 1.0 / 60, paused: celebration == nil)) { timeline in
-                Canvas { context, _ in
-                    let elapsed = celebration.map { timeline.date.timeIntervalSince($0) } ?? 10
-                    let arrival = 0.68
-                    let target = min(controller.dailyGoal - 1, max(0, controller.completedToday - 1))
-                    func point(_ index: Int) -> CGPoint {
-                        let columns = controller.dailyGoal <= 10 ? 5 : 10
-                        let spacing: Double = columns == 5 ? 30 : 15
-                        return CGPoint(x: 20 + Double(index % columns) * spacing, y: 116 + Double(index / columns) * 18)
-                    }
-                    let destination = point(target)
-                    for index in 0..<controller.dailyGoal {
-                        let justLit = index == target && elapsed < 1.7 && !reduceMotion
-                        let lit = index < controller.completedToday && (!justLit || elapsed >= arrival)
-                        let pop = justLit && elapsed >= arrival ? sin(min(1, (elapsed - arrival) / 0.55) * .pi) * 2 : 0
-                        let radius = 3.3 + pop
-                        let center = point(index)
-                        let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
-                        var dotContext = context
-                        if lit { dotContext.addFilter(.shadow(color: Color.green.opacity(0.25), radius: 3)) }
-                        dotContext.fill(Path(ellipseIn: rect), with: .color(lit ? Color(red: 0.3, green: 0.78, blue: 0.46) : .primary.opacity(0.14)))
-                    }
-                    if elapsed < arrival && !reduceMotion {
-                        for tail in 0..<14 {
-                            let t = max(0, min(1, elapsed / arrival - Double(tail) * 0.018))
-                            let start = CGPoint(x: 132, y: 35)
-                            let x = (1-t)*(1-t)*start.x + 2*(1-t)*t*174 + t*t*destination.x
-                            let y = (1-t)*(1-t)*start.y + 2*(1-t)*t*88 + t*t*destination.y
-                            let r = 3.5 * (1 - Double(tail) / 18)
-                            context.fill(Path(ellipseIn: CGRect(x: x-r, y: y-r, width: r*2, height: r*2)), with: .color(.green.opacity(1 - Double(tail)/15)))
-                        }
-                    }
-                    if elapsed >= arrival && elapsed < 1.5 && !reduceMotion {
-                        let t = (elapsed - arrival) / 0.82
-                        for index in 0..<10 {
-                            let angle = Double(index) * .pi * 2 / 10
-                            let x = destination.x + cos(angle) * 20 * t
-                            let y = destination.y + sin(angle) * 15 * t + 9*t*t
-                            let rect = CGRect(x: x, y: y, width: 2, height: index % 2 == 0 ? 4 : 2)
-                            context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color((index % 3 == 0 ? Color.yellow : Color.green).opacity(1-t)))
-                        }
-                    }
-                }
-            }.allowsHitTesting(false).accessibilityHidden(true)
+            FocusCelebrationOverlay(startedAt: celebration, completed: controller.completedToday, goal: controller.dailyGoal)
         }
         .task(id: controller.completionEvent) {
             guard controller.completionEvent > 0 else { return }
             celebration = Date()
-            try? await Task.sleep(for: .seconds(reduceMotion ? 0 : 1.7))
+            try? await Task.sleep(for: .seconds(reduceMotion ? 0 : FocusEnergy.duration))
             if !Task.isCancelled { celebration = nil }
         }
     }

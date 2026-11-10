@@ -44,6 +44,11 @@ final class WindowFocusController: ObservableObject {
         cycle.focusDuration = Double(focusMinutes * 60)
         cycle.restDuration = Double(restMinutes * 60)
     }
+    @Published private(set) var completionSound = FocusCue(rawValue: UserDefaults.standard.string(forKey: "focus.completionSound") ?? "Glass") ?? .glass
+    func setCompletionSound(_ cue: FocusCue) {
+        completionSound = cue
+        UserDefaults.standard.set(cue.rawValue, forKey: "focus.completionSound")
+    }
     private var creditedRounds = 0
     private var cycleWallStart = Date()
     private var selectedWindows: Set<CGWindowID> = []
@@ -185,6 +190,7 @@ final class WindowFocusController: ObservableObject {
         refreshDailyCount()
         let next = cycle.snapshot(at: now)
         if next.phase != cycleState.phase {
+            if cycleState.phase != .idle && next.phase != .idle { FocusSoundPlayer.play(completionSound) }
             for panel in panels { (panel.contentView as? WindowFocusCanvas)?.setResting(next.phase == .rest) }
         }
         cycleState = next

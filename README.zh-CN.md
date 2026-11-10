@@ -143,3 +143,5 @@ Build with `./scripts/build.sh`; run `swift test -j 1`. Contributions that impro
 [MIT](LICENSE) for app code and the geometric pixel echo mark. Space Grotesk is separately licensed under [SIL OFL 1.1](Sources/Reeeead/Resources/Fonts/SpaceGrotesk-OFL.txt). The retained OpenDyslexic font is separately licensed under [SIL OFL 1.1](Sources/Reeeead/Resources/Fonts/OFL.txt). UI symbols use the native system symbol library. Generated logo concept and asset provenance: [docs/ASSETS.md](docs/ASSETS.md).
 
 首页按「窗口聚焦 → 朗读 → 标尺」排列，默认打开窗口聚焦；该页可直接调整透明度、圆角、专注时长（1–180 分钟）、休息时长（1–60 分钟）和每日目标。时长自动保存，下次启动计时生效，不重置当前循环。
+
+完成反馈：绿色粒子炸开后带拖尾汇聚到当前进度点，再发出光晕。窗口聚焦页可预览动画，选择 Glass、Ping、Pop、Submarine 或静音，并试听提示音。专注完成和休息结束时播放所选提示音；系统开启「减少动态效果」时改为直接点亮进度点。

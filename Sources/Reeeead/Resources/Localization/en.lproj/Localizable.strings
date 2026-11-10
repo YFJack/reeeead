@@ -244,3 +244,9 @@
 "开始 %d 分钟专注" = "Start %d-minute focus";
 "时长会在下次开始计时时生效，当前循环保持不变。" = "Duration changes apply the next time you start the timer. The current cycle stays unchanged.";
 "可与标尺同时使用。Esc 优先收起标尺，再按一次退出窗口聚焦。" = "Use alongside the ruler. Esc closes the ruler first; press again to exit Window Focus.";
+"完成反馈" = "Completion feedback";
+"提示音" = "Sound";
+"试听" = "Preview sound";
+"专注完成和休息结束时播放。" = "Plays when focus or a break ends.";
+"预览能量动画" = "Preview energy";
+"静音" = "Silent";

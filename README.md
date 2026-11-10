@@ -122,3 +122,5 @@ The [website source](website), [film renderer and script](marketing/video), and 
 App code and geometric pixel mark: [MIT](LICENSE). Bundled Space Grotesk and retained OpenDyslexic fonts: [SIL OFL notices](Sources/Reeeead/Resources/Fonts). Generated artwork provenance and usage notes: [ASSETS](docs/ASSETS.md).
 
 The home screen opens on Window Focus, followed by Read and Ruler as equal tabs. Focus controls and settings are available directly in the first tab. Set transparency, corner radius, focus duration (1–180 minutes), break duration (1–60 minutes), and daily goal there. Duration changes are saved and apply when you next start the timer; an ongoing cycle is preserved.
+
+Completion feedback: a green particle burst converges into the current daily progress dot, followed by a glow ripple. Window Focus settings include an animation preview and Glass, Ping, Pop, Submarine or Silent sound choices, with a sound preview. The selected cue plays at focus and break boundaries. Reduce Motion uses immediate dot illumination instead of particle movement.

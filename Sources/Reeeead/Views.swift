@@ -267,6 +267,7 @@ struct WindowFocusControl: View {
 }
 
 struct WindowFocusSettings: View {
+    @State private var previewStart: Date?
     @ObservedObject var model: AppModel
     @ObservedObject var focus: WindowFocusController
     var body: some View {
@@ -287,6 +288,30 @@ struct WindowFocusSettings: View {
                 }
                 Text(L("时长会在下次开始计时时生效，当前循环保持不变。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
             }.font(.system(size: 13))
+            Divider()
+            SettingGroup(title: L("完成反馈")) {
+                HStack {
+                    Picker(L("提示音"), selection: Binding(get: { focus.completionSound }, set: { focus.setCompletionSound($0) })) {
+                        ForEach(FocusCue.allCases) { cue in Text(cue.title).tag(cue) }
+                    }
+                    Button(L("试听")) { FocusSoundPlayer.play(focus.completionSound) }.disabled(focus.completionSound == .silent)
+                }
+                Text(L("专注完成和休息结束时播放。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
+                HStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18).fill(Color.black.opacity(0.78))
+                        FocusCelebrationOverlay(startedAt: previewStart, completed: previewStart == nil ? 0 : 1, goal: 10)
+                            .environment(\.colorScheme, .dark)
+                    }.frame(width: 176, height: 154)
+                    Spacer()
+                    Button(L("预览能量动画")) { previewStart = Date() }.buttonStyle(ReaderButtonStyle())
+                }
+            }
+            .task(id: previewStart) {
+                guard previewStart != nil else { return }
+                try? await Task.sleep(for: .seconds(FocusEnergy.duration))
+                if !Task.isCancelled { previewStart = nil }
+            }
             Divider()
             HStack {
                 Text(L("快捷键")).font(.system(size: 12)); Spacer()
