@@ -27,6 +27,13 @@ final class WindowFocusController: ObservableObject {
     @Published private(set) var locked = false
     @Published private(set) var addingWindow = false
     @Published private(set) var cycleState = FocusCycle.Snapshot()
+    @Published private(set) var brightness = 0.38
+    @Published private(set) var dailyGoal = max(1, min(20, UserDefaults.standard.object(forKey: "focus.dailyGoal") as? Int ?? 10))
+    @Published private(set) var completedToday = 0
+    @Published private(set) var completionEvent = 0
+    var onBrightnessChange: ((Double) -> Void)?
+    private var creditedRounds = 0
+    private var cycleWallStart = Date()
     private var selectedWindows: Set<CGWindowID> = []
     private var pendingAdd = false
     private var lastRegions: [FocusRegion] = []
@@ -65,6 +72,9 @@ final class WindowFocusController: ObservableObject {
             onMessage?(L("窗口聚焦需要辅助功能权限。请在「快捷键」页开启权限。")); return
         }
         self.cornerRadius = cornerRadius
+        brightness = 1 - opacity
+        completionEvent = 0
+        refreshDailyCount()
         guard let rect = focusedWindowRect(reselect: true) else {
             clearTracking()
             onMessage?(L("未能读取当前窗口，请切换到要阅读的窗口后重试。")); return
@@ -86,6 +96,7 @@ final class WindowFocusController: ObservableObject {
         // with incomplete AX support. Fast polling exists only during a mouse press.
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             guard let self else { return }
+            self.refreshDailyCount()
             self.requestRefresh(reselect: self.dragTimer == nil)
         }
         timer.tolerance = 0.025
@@ -132,8 +143,11 @@ final class WindowFocusController: ObservableObject {
     func toggleCycle() {
         guard active else { return }
         if cycle.startedAt != nil {
+            updateCycle()
             cycle.stop(); cycleTimer?.invalidate(); cycleTimer = nil
         } else {
+            creditedRounds = 0
+            cycleWallStart = Date()
             cycle.start(at: ProcessInfo.processInfo.systemUptime)
             let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.updateCycle() }
             timer.tolerance = 0.05
@@ -143,13 +157,43 @@ final class WindowFocusController: ObservableObject {
         updateCycle()
     }
     private func updateCycle() {
-        let next = cycle.snapshot(at: ProcessInfo.processInfo.systemUptime)
+        let now = ProcessInfo.processInfo.systemUptime
+        let total = cycle.completions(at: now)
+        if total > creditedRounds {
+            for round in creditedRounds..<total {
+                let date = cycleWallStart.addingTimeInterval(Double(round * 1800 + 1500))
+                let key = dailyKey(date)
+                UserDefaults.standard.set(UserDefaults.standard.integer(forKey: key) + 1, forKey: key)
+            }
+            creditedRounds = total
+            completionEvent += 1
+        }
+        refreshDailyCount()
+        let next = cycle.snapshot(at: now)
         if next.phase != cycleState.phase {
             for panel in panels { (panel.contentView as? WindowFocusCanvas)?.setResting(next.phase == .rest) }
         }
         cycleState = next
     }
+    private func dailyKey(_ date: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return "focus.completed.\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
+    }
+    private func refreshDailyCount() {
+        let count = UserDefaults.standard.integer(forKey: dailyKey(Date()))
+        if completedToday != count { completedToday = count }
+    }
+    func setDailyGoal(_ count: Int) {
+        dailyGoal = max(1, min(20, count))
+        UserDefaults.standard.set(dailyGoal, forKey: "focus.dailyGoal")
+    }
+    func setBrightness(_ value: Double) {
+        let value = min(1, max(0, value))
+        updateOpacity(1 - value)
+        onBrightnessChange?(value)
+    }
     func updateOpacity(_ opacity: Double) {
+        brightness = 1 - opacity
         for panel in panels {
             (panel.contentView as? WindowFocusCanvas)?.opacity = opacity
         }
@@ -159,6 +203,7 @@ final class WindowFocusController: ObservableObject {
         let regions = lastRegions; lastRegions = []; renderRegions(regions)
     }
     func stop() {
+        if active { updateCycle() }
         timer?.invalidate(); timer = nil
         cycleTimer?.invalidate(); cycleTimer = nil; cycle.stop(); cycleState = .init()
         controls?.orderOut(nil); controls?.contentView = nil; controls = nil

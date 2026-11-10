@@ -4,6 +4,20 @@ import QuartzCore
 @testable import Reeeead
 
 final class FocusSessionTests: XCTestCase {
+    func testCompletedRoundsRequireFullFocusAndExcludeBreaks() {
+        var clock = FocusCycle()
+        XCTAssertEqual(clock.completions(at: 99999), 0)
+        clock.start(at: 100)
+        XCTAssertEqual(clock.completions(at: 1599.99), 0)
+        XCTAssertEqual(clock.completions(at: 1600), 1)
+        XCTAssertEqual(clock.completions(at: 1900), 1)
+        XCTAssertEqual(clock.completions(at: 3400), 2)
+        XCTAssertEqual(clock.completions(at: 100 + 1800 * 9 + 1500), 10)
+        clock.stop()
+        XCTAssertEqual(clock.completions(at: 99999), 0)
+        clock.start(at: 100000)
+        XCTAssertEqual(clock.completions(at: 100001), 0)
+    }
     func testSharedCycleTransitionsAtExactBoundariesAndRepeats() {
         var clock = FocusCycle()
         XCTAssertEqual(clock.snapshot(at: 100).phase, .idle)

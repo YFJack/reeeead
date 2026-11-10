@@ -46,6 +46,7 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
             self.focus.handleEscape()
             return true
         }
+        focus.onBrightnessChange = { [weak self] value in self?.preferences.focusOpacity = 1 - value }
         focus.onMessage = { [weak self] text in self?.speech.show(text) }
         ruler.onMessage = { [weak self] text in self?.speech.show(text) }
         registerShortcuts()
