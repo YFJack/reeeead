@@ -55,6 +55,12 @@ struct FocusWindowInfo {
             return FocusWindowInfo(id: id, pid: pid, rect: converted)
         }
     }
+    static func matching(pid: pid_t, rect: CGRect, windows: [FocusWindowInfo]) -> FocusWindowInfo? {
+        windows.first {
+            $0.pid == pid && abs($0.rect.minX - rect.minX) < 2 && abs($0.rect.minY - rect.minY) < 2
+                && abs($0.rect.width - rect.width) < 2 && abs($0.rect.height - rect.height) < 2
+        }
+    }
     // WindowServer supplies current stacking order and geometry without reading
     // window contents. Higher unselected windows stay dim even over a locked one.
     static func regions(selected: Set<CGWindowID>, windows: [FocusWindowInfo]) -> [FocusRegion] {

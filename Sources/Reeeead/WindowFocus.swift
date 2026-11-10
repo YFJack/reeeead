@@ -42,6 +42,7 @@ final class WindowFocusController: ObservableObject {
     private var trackedApp: AXUIElement?
     private var trackedWindow: AXUIElement?
     private var trackedPID: pid_t?
+    private var trackedWindowID: CGWindowID?
     private var mouseMonitors: [Any] = []
     private var dragTimer: Timer?
     private var scheduledRefresh: DispatchWorkItem?
@@ -84,7 +85,8 @@ final class WindowFocusController: ObservableObject {
         // Notifications handle normal changes; a low-rate fallback covers apps
         // with incomplete AX support. Fast polling exists only during a mouse press.
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
-            self?.requestRefresh(reselect: true)
+            guard let self else { return }
+            self.requestRefresh(reselect: self.dragTimer == nil)
         }
         timer.tolerance = 0.025
         self.timer = timer
@@ -119,9 +121,8 @@ final class WindowFocusController: ObservableObject {
     private func pinCurrentWindow() -> Bool {
         guard let rect = focusedWindowRect(reselect: true), let pid = trackedPID,
               let primary = NSScreen.screens.first else { return false }
-        let candidate = FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height).first {
-            $0.pid == pid && abs($0.rect.minX - rect.minX) < 2 && abs($0.rect.minY - rect.minY) < 2 && abs($0.rect.width - rect.width) < 2 && abs($0.rect.height - rect.height) < 2
-        }
+        let candidate = FocusWindowInfo.matching(pid: pid, rect: rect,
+            windows: FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height))
         guard let candidate else {
             onMessage?(L("未能读取当前窗口，请切换到要阅读的窗口后重试。")); return false
         }
@@ -265,7 +266,7 @@ final class WindowFocusController: ObservableObject {
     }
     private func clearTracking() {
         if let axObserver { CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(axObserver), .commonModes) }
-        axObserver = nil; trackedApp = nil; trackedWindow = nil; trackedPID = nil
+        axObserver = nil; trackedApp = nil; trackedWindow = nil; trackedPID = nil; trackedWindowID = nil
     }
     private func track(_ pid: pid_t) {
         clearTracking()
@@ -292,10 +293,19 @@ final class WindowFocusController: ObservableObject {
               let primary = NSScreen.screens.first else { return nil }
         if trackedPID != front.processIdentifier { track(front.processIdentifier) }
         guard let app = trackedApp else { return nil }
+        // AX identifies the focused window; WindowServer supplies live geometry.
+        // Avoid two synchronous cross-process AX requests on every drag frame.
+        if !reselect, let id = trackedWindowID {
+            let windows = FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height)
+            if let live = windows.first(where: { $0.id == id && $0.pid == trackedPID }) {
+                return live.rect
+            }
+            trackedWindowID = nil
+        }
         if reselect || trackedWindow == nil {
             var value: CFTypeRef?
             guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value) == .success,
-                  let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { trackedWindow = nil; return nil }
+                  let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { trackedWindow = nil; trackedWindowID = nil; return nil }
             let next = unsafeBitCast(value, to: AXUIElement.self)
             if trackedWindow == nil || !CFEqual(trackedWindow!, next) {
                 if let observer = axObserver {
@@ -306,6 +316,7 @@ final class WindowFocusController: ObservableObject {
                     for name in names { AXObserverAddNotification(observer, next, name as CFString, Unmanaged.passUnretained(self).toOpaque()) }
                 }
                 trackedWindow = next
+                trackedWindowID = nil
                 AXUIElementSetMessagingTimeout(next, 0.01)
             }
         }
@@ -320,7 +331,10 @@ final class WindowFocusController: ObservableObject {
         var size = CGSize.zero
         guard AXValueGetValue(unsafeBitCast(positionValue, to: AXValue.self), .cgPoint, &point),
               AXValueGetValue(unsafeBitCast(sizeValue, to: AXValue.self), .cgSize, &size) else { return nil }
-        return WindowFocusGeometry.appKitRect(CGRect(origin: point, size: size), primaryHeight: primary.frame.height)
+        guard let rect = WindowFocusGeometry.appKitRect(CGRect(origin: point, size: size), primaryHeight: primary.frame.height) else { return nil }
+        let windows = FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height)
+        trackedWindowID = FocusWindowInfo.matching(pid: front.processIdentifier, rect: rect, windows: windows)?.id
+        return rect
     }
     deinit {
         timer?.invalidate(); dragTimer?.invalidate(); cycleTimer?.invalidate(); scheduledRefresh?.cancel()
@@ -402,7 +416,13 @@ final class WindowFocusCanvas: NSView {
                 let transform = CGAffineTransform(a: sx, b: 0, c: 0, d: sy, tx: x, ty: y)
                 regionCorners.addPath(corner, transform: transform)
             }
-            result.addPath(regionCorners.lineIntersection(region.visiblePath(radius: self.radius(for: region.rect))))
+            // Without occlusion these inset corner strokes already lie in the hole.
+            // Skip the expensive path intersection for the common single-window case.
+            if region.occluders.contains(where: { $0.intersects(region.rect) }) {
+                result.addPath(regionCorners.lineIntersection(region.visiblePath(radius: self.radius(for: region.rect))))
+            } else {
+                result.addPath(regionCorners)
+            }
         }
         return result
     }

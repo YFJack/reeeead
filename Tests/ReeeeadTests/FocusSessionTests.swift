@@ -42,6 +42,14 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertFalse(canvas.maskPath().contains(CGPoint(x: 80, y: 80), using: .evenOdd))
         XCTAssertTrue(FocusWindowInfo.regions(selected: [2], windows: [front]).isEmpty, "Off-Space/minimized/closed windows cannot leave stale holes")
     }
+    func testLiveWindowMatchRequiresOwnerAndFullGeometry() {
+        let rect = CGRect(x: -500, y: 200, width: 400, height: 300)
+        let wrongOwner = FocusWindowInfo(id: 1, pid: 99, rect: rect)
+        let wrongSize = FocusWindowInfo(id: 2, pid: 7, rect: CGRect(x: -500, y: 200, width: 500, height: 300))
+        let target = FocusWindowInfo(id: 3, pid: 7, rect: rect.offsetBy(dx: 0.5, dy: 0.5))
+        XCTAssertEqual(FocusWindowInfo.matching(pid: 7, rect: rect, windows: [wrongOwner, wrongSize, target])?.id, 3)
+        XCTAssertNil(FocusWindowInfo.matching(pid: 7, rect: rect, windows: [wrongOwner, wrongSize]))
+    }
     func testSelectedWindowsKeepIdentityAcrossMovementAndReordering() {
         let original = FocusWindowInfo(id: 1, pid: 1, rect: CGRect(x: 0, y: 0, width: 100, height: 100))
         let moved = FocusWindowInfo(id: 1, pid: 1, rect: CGRect(x: 500, y: 300, width: 100, height: 100))
