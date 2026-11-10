@@ -18,6 +18,38 @@ final class FocusSessionTests: XCTestCase {
         clock.start(at: 100000)
         XCTAssertEqual(clock.completions(at: 100001), 0)
     }
+    func testCustomDurationsDriveTransitionsCountsAndIdleLabel() {
+        var cycle = FocusCycle(focusDuration: 10 * 60, restDuration: 2 * 60)
+        XCTAssertEqual(cycle.snapshot(at: 0).label, "10:00")
+        cycle.start(at: 100)
+        XCTAssertEqual(cycle.snapshot(at: 699).phase, .focus)
+        XCTAssertEqual(cycle.snapshot(at: 700).label, "02:00")
+        XCTAssertEqual(cycle.snapshot(at: 700).phase, .rest)
+        XCTAssertEqual(cycle.completions(at: 699), 0)
+        XCTAssertEqual(cycle.completions(at: 700), 1)
+        XCTAssertEqual(cycle.snapshot(at: 820).label, "10:00")
+        XCTAssertEqual(cycle.completions(at: 100 + 720 * 3 + 600), 4)
+        cycle.stop()
+        XCTAssertEqual(cycle.snapshot(at: 9999).label, "10:00")
+    }
+    func testTimerPreferencesMigrateClampAndRoundTrip() throws {
+        var preferences = Preferences()
+        XCTAssertEqual(preferences.focusMinutes, 25)
+        XCTAssertEqual(preferences.restMinutes, 5)
+        preferences.focusMinutes = 45; preferences.restMinutes = 10
+        let data = try JSONEncoder().encode(preferences)
+        let decoded = try JSONDecoder().decode(Preferences.self, from: data)
+        XCTAssertEqual(decoded.focusMinutes, 45)
+        XCTAssertEqual(decoded.restMinutes, 10)
+        preferences.focusMinutes = 0; preferences.restMinutes = 999
+        XCTAssertEqual(preferences.focusMinutes, 1)
+        XCTAssertEqual(preferences.restMinutes, 60)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "windowFocusMinutes"); legacy.removeValue(forKey: "windowRestMinutes")
+        let migrated = try JSONDecoder().decode(Preferences.self, from: JSONSerialization.data(withJSONObject: legacy))
+        XCTAssertEqual(migrated.focusMinutes, 25)
+        XCTAssertEqual(migrated.restMinutes, 5)
+    }
     func testSharedCycleTransitionsAtExactBoundariesAndRepeats() {
         var clock = FocusCycle()
         XCTAssertEqual(clock.snapshot(at: 100).phase, .idle)
@@ -55,6 +87,15 @@ final class FocusSessionTests: XCTestCase {
         XCTAssertTrue(canvas.maskPath().contains(CGPoint(x: 40, y: 40), using: .evenOdd), "An unselected window covering a locked one must remain dark")
         XCTAssertFalse(canvas.maskPath().contains(CGPoint(x: 80, y: 80), using: .evenOdd))
         XCTAssertTrue(FocusWindowInfo.regions(selected: [2], windows: [front]).isEmpty, "Off-Space/minimized/closed windows cannot leave stale holes")
+    }
+    func testTransientAXFailureRetainsOnlySameLiveFrontWindow() {
+        let live = FocusWindowInfo(id: 7, pid: 42, rect: CGRect(x: 100, y: 200, width: 500, height: 400))
+        let other = FocusWindowInfo(id: 8, pid: 42, rect: CGRect(x: 200, y: 200, width: 300, height: 300))
+        XCTAssertEqual(FocusWindowInfo.retainedWindow(id: 7, pid: 42, windows: [live])?.rect, live.rect)
+        XCTAssertNil(FocusWindowInfo.retainedWindow(id: 7, pid: 99, windows: [live]))
+        XCTAssertNil(FocusWindowInfo.retainedWindow(id: 7, pid: 42, windows: [other, live]))
+        XCTAssertNil(FocusWindowInfo.retainedWindow(id: 7, pid: 42, windows: []))
+        XCTAssertNil(FocusWindowInfo.retainedWindow(id: nil, pid: 42, windows: [live]))
     }
     func testLiveWindowMatchRequiresOwnerAndFullGeometry() {
         let rect = CGRect(x: -500, y: 200, width: 400, height: 300)

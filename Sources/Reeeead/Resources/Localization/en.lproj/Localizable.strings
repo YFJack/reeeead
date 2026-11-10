@@ -236,3 +236,11 @@
 "每日目标" = "Daily goal";
 
 "设置每天完成的专注次数" = "Set daily focus session goal";
+"窗口聚焦设置" = "Window Focus settings";
+"专注计时" = "Focus timer";
+"专注时间" = "Focus duration";
+"休息时间" = "Break duration";
+"%d 分钟" = "%d min";
+"开始 %d 分钟专注" = "Start %d-minute focus";
+"时长会在下次开始计时时生效，当前循环保持不变。" = "Duration changes apply the next time you start the timer. The current cycle stays unchanged.";
+"可与标尺同时使用。Esc 优先收起标尺，再按一次退出窗口聚焦。" = "Use alongside the ruler. Esc closes the ruler first; press again to exit Window Focus.";

@@ -165,6 +165,16 @@ struct Preferences: Codable {
         get { min(1, max(0, windowFocusOpacity ?? dimOpacity)) }
         set { windowFocusOpacity = min(1, max(0, newValue)) }
     }
+    var windowFocusMinutes: Int? = nil
+    var windowRestMinutes: Int? = nil
+    var focusMinutes: Int {
+        get { min(180, max(1, windowFocusMinutes ?? 25)) }
+        set { windowFocusMinutes = min(180, max(1, newValue)) }
+    }
+    var restMinutes: Int {
+        get { min(60, max(1, windowRestMinutes ?? 5)) }
+        set { windowRestMinutes = min(60, max(1, newValue)) }
+    }
     var lineWidth = 2.0
     var lineColor = "sage"
     var copyFallback = true

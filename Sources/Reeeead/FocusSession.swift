@@ -9,19 +9,22 @@ struct FocusCycle {
         var progress: Double = 1
         var label: String { String(format: "%02d:%02d", remaining / 60, remaining % 60) }
     }
+    var focusDuration: TimeInterval = 25 * 60
+    var restDuration: TimeInterval = 5 * 60
+    var roundDuration: TimeInterval { focusDuration + restDuration }
     private(set) var startedAt: TimeInterval?
     mutating func start(at time: TimeInterval) { startedAt = time }
     mutating func stop() { startedAt = nil }
     func completions(at time: TimeInterval) -> Int {
-        guard let startedAt, time >= startedAt + 1500 else { return 0 }
-        return Int((time - startedAt - 1500) / 1800) + 1
+        guard let startedAt, time >= startedAt + focusDuration else { return 0 }
+        return Int((time - startedAt - focusDuration) / roundDuration) + 1
     }
     func snapshot(at time: TimeInterval) -> Snapshot {
-        guard let startedAt else { return Snapshot() }
-        let elapsed = max(0, time - startedAt).truncatingRemainder(dividingBy: 30 * 60)
-        let resting = elapsed >= 25 * 60
-        let duration: Double = resting ? 5 * 60 : 25 * 60
-        let remaining = resting ? 30 * 60 - elapsed : 25 * 60 - elapsed
+        guard let startedAt else { return Snapshot(remaining: Int(focusDuration)) }
+        let elapsed = max(0, time - startedAt).truncatingRemainder(dividingBy: roundDuration)
+        let resting = elapsed >= focusDuration
+        let duration: Double = resting ? restDuration : focusDuration
+        let remaining = resting ? roundDuration - elapsed : focusDuration - elapsed
         return Snapshot(phase: resting ? .rest : .focus, remaining: Int(ceil(remaining)), progress: remaining / duration)
     }
 }
@@ -58,6 +61,12 @@ struct FocusWindowInfo {
                   let converted = WindowFocusGeometry.appKitRect(rect, primaryHeight: primaryHeight) else { return nil }
             return FocusWindowInfo(id: id, pid: pid, rect: converted)
         }
+    }
+    // Only preserve a temporarily unavailable AX selection when the same live
+    // window is still this application's frontmost normal window.
+    static func retainedWindow(id: CGWindowID?, pid: pid_t, windows: [FocusWindowInfo]) -> FocusWindowInfo? {
+        guard let id, let front = windows.first(where: { $0.pid == pid }), front.id == id else { return nil }
+        return front
     }
     static func matching(pid: pid_t, rect: CGRect, windows: [FocusWindowInfo]) -> FocusWindowInfo? {
         windows.first {
@@ -129,11 +138,11 @@ struct FocusFloatingControls: View {
                             .rotationEffect(.degrees(-90)).padding(3)
                         Text(controller.cycleState.label).font(.system(size: 10, weight: .medium, design: .monospaced)).monospacedDigit()
                     } else {
-                        VStack(spacing: 1) { Text("25").font(.system(size: 15, weight: .medium)); Text("Focus").font(.system(size: 8, weight: .medium)) }
+                        VStack(spacing: 1) { Text("\(controller.focusMinutes)").font(.system(size: 15, weight: .medium)); Text("Focus").font(.system(size: 8, weight: .medium)) }
                     }
                 }.frame(width: 52, height: 52)
-            }.buttonStyle(.plain).help(controller.cycleState.phase == .idle ? L("开始 25 分钟专注") : L("停止专注循环"))
-                .accessibilityLabel(controller.cycleState.phase == .idle ? L("开始 25 分钟专注") : L("停止专注循环"))
+            }.buttonStyle(.plain).help(controller.cycleState.phase == .idle ? L("开始 %d 分钟专注", controller.focusMinutes) : L("停止专注循环"))
+                .accessibilityLabel(controller.cycleState.phase == .idle ? L("开始 %d 分钟专注", controller.focusMinutes) : L("停止专注循环"))
                 .accessibilityValue(controller.cycleState.phase == .rest ? L("休息 %@", controller.cycleState.label) : controller.cycleState.label)
         }
         GeometryReader { geometry in

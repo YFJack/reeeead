@@ -2,12 +2,15 @@ import AppKit
 import SwiftUI
 import AVFoundation
 
-enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
+enum Page: String, CaseIterable { case home, voice, ruler, focus, shortcuts }
 
 @MainActor final class AppModel: ObservableObject {
     @Published var preferences = Preferences.load() {
         didSet {
             preferences.save()
+            if oldValue.focusMinutes != preferences.focusMinutes || oldValue.restMinutes != preferences.restMinutes {
+                focus.configureCycle(focusMinutes: preferences.focusMinutes, restMinutes: preferences.restMinutes)
+            }
             if oldValue.focusOpacity != preferences.focusOpacity { focus.updateOpacity(preferences.focusOpacity) }
             if oldValue.focusCornerRadius != preferences.focusCornerRadius { focus.updateCornerRadius(preferences.focusCornerRadius) }
         }
@@ -32,6 +35,8 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
     lazy var voices: [AVSpeechSynthesisVoice] = AVSpeechSynthesisVoice.speechVoices().sorted { $0.language + $0.name < $1.language + $1.name }
 
     init() {
+        focus.configureCycle(focusMinutes: preferences.focusMinutes, restMinutes: preferences.restMinutes)
+        focus.shouldIgnoreMouseEvent = { [weak self] in self?.ruler.active == true && self?.ruler.locked == false }
         hotKeys.onRead = { [weak self] in
             guard let self else { return }
             self.speech.selection(preferences: self.preferences)
@@ -42,7 +47,9 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
         }
         hotKeys.onFocus = { [weak self] in self?.toggleFocus() }
         hotKeys.onEscape = { [weak self] in
-            guard let self, self.focus.active else { return false }
+            guard let self else { return false }
+            if self.ruler.active { self.ruler.stop(); return true }
+            guard self.focus.active else { return false }
             self.focus.handleEscape()
             return true
         }
@@ -79,7 +86,6 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
         return nil
     }
     func toggleRuler() {
-        focus.stop()
         ruler.toggle(preferences: preferences)
     }
     func toggleFocus() {
@@ -88,7 +94,6 @@ enum Page: String, CaseIterable { case home, voice, ruler, shortcuts }
             speech.show(L("窗口聚焦需要辅助功能权限。请在「快捷键」页开启权限。"))
             return
         }
-        ruler.stop()
         focus.start(opacity: preferences.focusOpacity, cornerRadius: preferences.focusCornerRadius)
     }
     func refreshPermission() {

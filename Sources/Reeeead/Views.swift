@@ -13,12 +13,13 @@ struct MainView: View {
                 home.padding(.horizontal, 28)
                 Spacer(minLength: 18)
             } else {
-                Picker(L("设置分类"), selection: $model.page) { Text(L("语音")).tag(Page.voice); Text(L("标尺")).tag(Page.ruler); Text(L("快捷键")).tag(Page.shortcuts) }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 28).padding(.bottom, 22)
+                Picker(L("设置分类"), selection: $model.page) { Text(L("语音")).tag(Page.voice); Text(L("标尺")).tag(Page.ruler); Text(L("窗口聚焦")).tag(Page.focus); Text(L("快捷键")).tag(Page.shortcuts) }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 28).padding(.bottom, 22)
                 ScrollView {
                     Group {
                         switch model.page {
                         case .voice: VoiceSettings(model: model, speech: speech)
                         case .ruler: rulerSettings
+                        case .focus: WindowFocusSettings(model: model, focus: model.focus)
                         case .shortcuts: shortcutSettings
                         case .home: EmptyView()
                         }
@@ -247,7 +248,6 @@ struct VoiceSettings: View {
 struct WindowFocusControl: View {
     @ObservedObject var model: AppModel
     @ObservedObject var focus: WindowFocusController
-    @State private var showingAppearance = false
     var body: some View {
         HStack(spacing: 10) {
             Button { model.toggleFocus() } label: {
@@ -255,33 +255,42 @@ struct WindowFocusControl: View {
                     .font(.system(size: 12, weight: .medium))
             }.buttonStyle(.plain).help(focus.active ? L("收起窗口聚焦") : L("开启窗口聚焦"))
             Spacer()
-            Button { showingAppearance.toggle() } label: {
+            Button { model.page = .focus } label: {
                 Image(systemName: "slider.horizontal.3").font(.system(size: 13)).frame(width: 26, height: 26)
-            }.buttonStyle(.plain).help(L("调整透明度")).accessibilityLabel(L("调整透明度"))
-                .popover(isPresented: $showingAppearance) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(L("窗口聚焦")).font(.system(size: 14, weight: .semibold))
-                            Spacer()
-                            Button { showingAppearance = false } label: { Image(systemName: "xmark") }
-                                .buttonStyle(.plain).accessibilityLabel(L("关闭"))
-                        }
-                        FocusOpacityPreview(opacity: model.preferences.focusOpacity, cornerRadius: model.preferences.focusCornerRadius / 2)
-                        FocusOpacityControl(model: model)
-                        VStack(spacing: 7) {
-                            HStack {
-                                Text(L("窗口圆角")).font(.system(size: 12))
-                                Spacer()
-                                Text("\(Int(model.preferences.focusCornerRadius)) pt").font(.system(size: 12, design: .monospaced))
-                            }
-                            Slider(value: $model.preferences.focusCornerRadius, in: 0...24, step: 1)
-                                .tint(Ink.dark).accessibilityLabel(L("窗口圆角"))
-                        }
-                        Text(L("拖动即生效，下次自动记住。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
-                    }.padding(18).frame(width: 280).background(Ink.paper).foregroundStyle(Ink.dark)
-                }
+            }.buttonStyle(.plain).help(L("窗口聚焦设置")).accessibilityLabel(L("窗口聚焦设置"))
             Button { model.beginRecording(3) } label: { KeyCap(text: model.preferences.focusShortcut.display) }.buttonStyle(.plain).help(L("修改快捷键"))
         }.foregroundStyle(focus.active ? Ink.dark : Ink.muted)
+    }
+}
+
+struct WindowFocusSettings: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var focus: WindowFocusController
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            FocusOpacityPreview(opacity: model.preferences.focusOpacity, cornerRadius: model.preferences.focusCornerRadius / 2)
+            FocusOpacityControl(model: model)
+            sliderRow(L("窗口圆角"), value: $model.preferences.focusCornerRadius, range: 0...24, label: "\(Int(model.preferences.focusCornerRadius)) pt", step: 1)
+            Divider()
+            SettingGroup(title: L("专注计时")) {
+                Stepper(value: $model.preferences.focusMinutes, in: 1...180) {
+                    HStack { Text(L("专注时间")); Spacer(); Text(L("%d 分钟", model.preferences.focusMinutes)).monospacedDigit() }
+                }
+                Stepper(value: $model.preferences.restMinutes, in: 1...60) {
+                    HStack { Text(L("休息时间")); Spacer(); Text(L("%d 分钟", model.preferences.restMinutes)).monospacedDigit() }
+                }
+                Stepper(value: Binding(get: { focus.dailyGoal }, set: { focus.setDailyGoal($0) }), in: 1...20) {
+                    HStack { Text(L("每日目标")); Spacer(); Text("\(focus.dailyGoal)").monospacedDigit() }
+                }
+                Text(L("时长会在下次开始计时时生效，当前循环保持不变。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
+            }.font(.system(size: 13))
+            Divider()
+            HStack {
+                Text(L("快捷键")).font(.system(size: 12)); Spacer()
+                Button { model.beginRecording(3) } label: { KeyCap(text: model.preferences.focusShortcut.display) }.buttonStyle(.plain)
+            }
+            Text(L("可与标尺同时使用。Esc 优先收起标尺，再按一次退出窗口聚焦。")).font(.system(size: 11)).foregroundStyle(Ink.muted)
+        }
     }
 }
 

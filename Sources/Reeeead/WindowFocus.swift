@@ -32,6 +32,18 @@ final class WindowFocusController: ObservableObject {
     @Published private(set) var completedToday = 0
     @Published private(set) var completionEvent = 0
     var onBrightnessChange: ((Double) -> Void)?
+    @Published private(set) var focusMinutes = 25
+    @Published private(set) var restMinutes = 5
+    var shouldIgnoreMouseEvent: (() -> Bool)?
+    func configureCycle(focusMinutes: Int, restMinutes: Int) {
+        self.focusMinutes = min(180, max(1, focusMinutes))
+        self.restMinutes = min(60, max(1, restMinutes))
+        if cycle.startedAt == nil { prepareCycle(); updateCycle() }
+    }
+    private func prepareCycle() {
+        cycle.focusDuration = Double(focusMinutes * 60)
+        cycle.restDuration = Double(restMinutes * 60)
+    }
     private var creditedRounds = 0
     private var cycleWallStart = Date()
     private var selectedWindows: Set<CGWindowID> = []
@@ -145,7 +157,9 @@ final class WindowFocusController: ObservableObject {
         if cycle.startedAt != nil {
             updateCycle()
             cycle.stop(); cycleTimer?.invalidate(); cycleTimer = nil
+            prepareCycle()
         } else {
+            prepareCycle()
             creditedRounds = 0
             cycleWallStart = Date()
             cycle.start(at: ProcessInfo.processInfo.systemUptime)
@@ -161,7 +175,7 @@ final class WindowFocusController: ObservableObject {
         let total = cycle.completions(at: now)
         if total > creditedRounds {
             for round in creditedRounds..<total {
-                let date = cycleWallStart.addingTimeInterval(Double(round * 1800 + 1500))
+                let date = cycleWallStart.addingTimeInterval(Double(round) * cycle.roundDuration + cycle.focusDuration)
                 let key = dailyKey(date)
                 UserDefaults.standard.set(UserDefaults.standard.integer(forKey: key) + 1, forKey: key)
             }
@@ -205,7 +219,7 @@ final class WindowFocusController: ObservableObject {
     func stop() {
         if active { updateCycle() }
         timer?.invalidate(); timer = nil
-        cycleTimer?.invalidate(); cycleTimer = nil; cycle.stop(); cycleState = .init()
+        cycleTimer?.invalidate(); cycleTimer = nil; cycle.stop(); prepareCycle(); cycleState = cycle.snapshot(at: 0)
         controls?.orderOut(nil); controls?.contentView = nil; controls = nil
         selectedWindows.removeAll(); locked = false; addingWindow = false; pendingAdd = false; lastRegions = []
         dragTimer?.invalidate(); dragTimer = nil
@@ -291,7 +305,7 @@ final class WindowFocusController: ObservableObject {
         if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in self?.mouseEvent(event); return event }) { mouseMonitors.append(local) }
     }
     private func mouseEvent(_ event: NSEvent) {
-        guard active, event.window !== controls else { return }
+        guard active, event.window !== controls, shouldIgnoreMouseEvent?() != true else { return }
         if addingWindow && event.type == .leftMouseUp { pendingAdd = true }
         requestRefresh(reselect: event.type == .leftMouseDown || event.type == .leftMouseUp)
         if event.type == .leftMouseUp {
@@ -349,8 +363,16 @@ final class WindowFocusController: ObservableObject {
         }
         if reselect || trackedWindow == nil {
             var value: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value) == .success,
-                  let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { trackedWindow = nil; trackedWindowID = nil; return nil }
+            let result = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value)
+            if result == .cannotComplete || result == .noValue {
+                // Typing / IME work can temporarily delay AX. Keep a verified live
+                // window, not an old rectangle, instead of flashing the mask off.
+                return FocusWindowInfo.retainedWindow(id: trackedWindowID, pid: front.processIdentifier,
+                    windows: FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height))?.rect
+            }
+            guard result == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() else {
+                trackedWindow = nil; trackedWindowID = nil; return nil
+            }
             let next = unsafeBitCast(value, to: AXUIElement.self)
             if trackedWindow == nil || !CFEqual(trackedWindow!, next) {
                 if let observer = axObserver {
@@ -366,6 +388,12 @@ final class WindowFocusController: ObservableObject {
             }
         }
         guard let window = trackedWindow else { return nil }
+        // An unchanged AX identity already has authoritative WindowServer bounds.
+        // Do not alternate between two geometry sources every idle poll.
+        if let id = trackedWindowID,
+           let live = FocusWindowInfo.visibleWindows(primaryHeight: primary.frame.height).first(where: { $0.id == id && $0.pid == front.processIdentifier }) {
+            return live.rect
+        }
         var positionValue: CFTypeRef?
         var sizeValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue) == .success,

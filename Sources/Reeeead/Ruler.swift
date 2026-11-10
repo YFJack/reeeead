@@ -47,6 +47,7 @@ final class RulerController: ObservableObject {
         let point = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(point, $0.frame, false) }) ?? NSScreen.main else { removeTap(); return }
         let panel = RulerPanel(screenFrame: screen.frame)
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 3)
         let canvas = RulerCanvas(frame: NSRect(origin: .zero, size: screen.frame.size), preferences: preferences)
         canvas.geometry.move(to: screen.frame.maxY - point.y)
         canvas.onLock = { [weak self, weak panel, weak canvas] in
